@@ -13,13 +13,13 @@ st.set_page_config(page_title="Global Pipeline Studio", layout="wide", initial_s
 if 'route' not in st.session_state:
     st.session_state.route = None
 
-# COMMON CSS (Morandi Background, Glassmorphism, hide sidebar)
+# COMMON CSS (High-end Minimalist, High Transparency Glassmorphism)
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600&display=swap');
 
     html, body, [class*="css"] {
-        font-family: 'Outfit', -apple-system, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
     }
 
     /* 绝对隐藏侧边栏和顶栏 */
@@ -27,37 +27,47 @@ st.markdown("""
     [data-testid="stSidebar"] { display: none !important; }
     header { visibility: hidden !important; }
 
-    /* 莫兰迪色系毛玻璃渐变背景 */
+    /* 高级极简背景：纯净浅灰白底色，带极其微弱的柔和晕影 */
     .stApp {
-        background-color: #F8F7F5 !important;
+        background-color: #FBFBFD !important; /* Apple-like light gray */
         background-image: 
-            radial-gradient(circle at 10% 20%, rgba(212, 196, 199, 0.45) 0%, transparent 40%),  /* 莫兰迪粉 */
-            radial-gradient(circle at 90% 80%, rgba(186, 195, 198, 0.45) 0%, transparent 40%),  /* 莫兰迪灰蓝 */
-            radial-gradient(circle at 50% 50%, rgba(198, 203, 195, 0.3) 0%, transparent 50%);  /* 莫兰迪绿 */
+            radial-gradient(circle at 15% 10%, rgba(220, 226, 235, 0.6) 0%, transparent 40%),
+            radial-gradient(circle at 85% 85%, rgba(235, 230, 240, 0.5) 0%, transparent 40%),
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
         background-attachment: fixed;
     }
 
-    /* 通用毛玻璃卡片 */
+    /* 极致高透毛玻璃容器 */
     [data-testid="stVerticalBlockBorderWrapper"] {
-        background: rgba(255, 255, 255, 0.5) !important;
-        backdrop-filter: blur(40px) saturate(150%) !important;
-        -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.9) !important;
-        border-radius: 32px !important;
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+        backdrop-filter: blur(50px) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(50px) saturate(180%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        border-radius: 24px !important;
+        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7) !important;
         padding: 2.5rem !important;
-        transition: transform 0.4s ease, box-shadow 0.4s ease;
-    }
-
-    h1, h2, h3 {
-        color: #2D3748 !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.5px;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
     }
     
+    [data-testid="stVerticalBlockBorderWrapper"]:hover {
+        background: rgba(255, 255, 255, 0.25) !important;
+        box-shadow: 0 15px 50px -10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+    }
+
+    h1, h2, h3, h4, h5 {
+        color: #1d1d1f !important; /* Apple typography color */
+        font-weight: 600 !important;
+        letter-spacing: -0.02em !important;
+    }
+    
+    p, span, div {
+        color: #424245 !important;
+    }
+
     /* 调整顶部空白 */
     .block-container {
-        padding-top: 3rem !important;
+        padding-top: 4rem !important;
+        max-width: 1200px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -68,16 +78,16 @@ if st.session_state.route is None:
     # ==========================
     st.markdown("""
     <style>
-        /* 巨大按钮动效 */
+        /* 高级极简巨型卡片按钮 */
         [data-testid="stButton"] button {
-            height: 450px !important;
+            height: 400px !important;
             width: 100% !important;
-            border-radius: 48px !important;
-            background: rgba(255, 255, 255, 0.25) !important;
-            border: 1px solid rgba(255, 255, 255, 0.5) !important;
+            border-radius: 32px !important;
+            background: rgba(255, 255, 255, 0.4) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
             backdrop-filter: blur(20px) !important;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.02) !important;
-            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
+            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
             position: relative;
             overflow: hidden;
             display: flex;
@@ -85,48 +95,31 @@ if st.session_state.route is None:
             justify-content: center;
         }
         
-        /* 扫光动效 */
-        [data-testid="stButton"] button::before {
-            content: "";
-            position: absolute;
-            top: 0; left: -100%;
-            width: 50%; height: 100%;
-            background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
-            transform: skewX(-20deg);
-            transition: all 0.7s;
-        }
-        
-        [data-testid="stButton"] button:hover::before {
-            left: 150%;
-        }
-        
-        /* 悬浮飞跃动效 */
+        /* 微光平滑悬浮效果 */
         [data-testid="stButton"] button:hover {
-            transform: translateY(-20px) scale(1.02) !important;
+            transform: translateY(-4px) scale(1.01) !important;
             background: rgba(255, 255, 255, 0.7) !important;
-            border-color: rgba(255, 255, 255, 1) !important;
-            box-shadow: 0 40px 80px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04) !important;
         }
         
-        /* 字体样式 */
+        /* 字体样式 - 优雅呼吸感 */
         [data-testid="stButton"] button p {
-            font-size: 38px !important;
-            font-weight: 800 !important;
-            color: #2D3748 !important;
-            line-height: 1.5 !important;
-            text-shadow: 0 4px 15px rgba(255,255,255,0.8);
+            font-size: 32px !important;
+            font-weight: 500 !important;
+            color: #1d1d1f !important;
+            line-height: 1.4 !important;
             white-space: pre-wrap;
+            letter-spacing: -0.01em !important;
         }
         
         .main-title {
             text-align: center;
-            font-size: 5rem;
-            font-weight: 800;
-            margin-top: 4vh;
+            font-size: 4.5rem;
+            font-weight: 600;
+            margin-top: 6vh;
             margin-bottom: 8vh;
-            color: #1A202C;
-            letter-spacing: -2px;
-            text-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            color: #1d1d1f;
+            letter-spacing: -0.03em;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -151,35 +144,38 @@ else:
     <style>
         /* 返回主界面特定按钮伪装 */
         .back-btn-container [data-testid="stButton"] button {
-            background: rgba(255,255,255,0.6) !important;
-            color: #4A5568 !important;
+            background: rgba(255,255,255,0.8) !important;
+            color: #1d1d1f !important;
             border-radius: 12px !important;
             padding: 0.5rem 1rem !important;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.02) !important;
-            border: 1px solid rgba(255,255,255,1) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+            border: 1px solid rgba(255,255,255,0.5) !important;
             transition: all 0.3s ease !important;
+            font-weight: 500 !important;
         }
         .back-btn-container [data-testid="stButton"] button:hover {
-            background: #fff !important;
-            transform: translateY(-2px) !important;
+            background: #ffffff !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
         }
         
-        /* 底部超级启动按钮 */
+        /* 底部超级启动按钮 - Apple-like Primary Button */
         .launch-btn-container [data-testid="stButton"] button {
-            background: linear-gradient(135deg, #1A202C 0%, #2D3748 100%) !important;
+            background: #1d1d1f !important;
             color: #ffffff !important;
             border: none !important;
-            border-radius: 24px !important;
-            padding: 1.5rem 2rem !important;
-            font-size: 1.3rem !important;
-            font-weight: 800 !important;
+            border-radius: 18px !important;
+            padding: 1.2rem 2rem !important;
+            font-size: 1.2rem !important;
+            font-weight: 600 !important;
             width: 100% !important;
-            box-shadow: 0 20px 40px -10px rgba(26, 32, 44, 0.4) !important;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
         }
         .launch-btn-container [data-testid="stButton"] button:hover {
-            transform: translateY(-5px) scale(1.01) !important;
-            box-shadow: 0 30px 60px -10px rgba(26, 32, 44, 0.5) !important;
+            background: #000000 !important;
+            transform: translateY(-2px) scale(1.005) !important;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -478,6 +474,11 @@ else:
                         log_container.error(f"❌ DSers机器故障: {e}")
                         st.stop()
                         
+            # 清理前端 Data Vault 的缓存，强制刷新显示最新数据
+            for key in ['edit_dsers', 'edit_import', 'edit_script']:
+                if key in st.session_state:
+                    del st.session_state[key]
+                    
             st.balloons()
-            log_container.success("🎉 报告 Commander，您下达的全链条战术指令已全栈执行完毕！")
+            log_container.success("🎉 报告 Commander，您下达的全链条战术指令已全栈执行完毕！(前端数据保险库已同步刷新)")
     st.markdown('</div>', unsafe_allow_html=True)

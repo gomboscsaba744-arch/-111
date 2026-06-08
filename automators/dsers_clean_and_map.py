@@ -6,6 +6,7 @@ import re
 
 # 导入中心化配置
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from automators.excel_utils import save_df_to_excel
 from config import DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV
 
 file_path = DSERS_TEMPLATE
@@ -83,8 +84,7 @@ try:
     # 新建对应 Dsers 的表结构，并只提取所需的列
     df_out = pd.DataFrame(columns=cols)
     if '交易编号' in df_clean.columns:
-        # 强制加上 \t 防止后续打开被 Excel 转成科学计数法
-        df_out['Order_number'] = df_clean['交易编号'].apply(lambda x: "\t" + str(x).strip() if not str(x).strip().startswith("\t") else str(x).strip())
+        df_out['Order_number'] = df_clean['交易编号']
         
     # --- 强常量覆盖 ---
     df_out['Country(Short Name of Country)'] = 'Brazil'
@@ -112,15 +112,10 @@ try:
     if 'abnnumber' in df_clean.columns:
         df_out['CPF(Brazil; Optional)'] = df_clean['abnnumber'].astype(str).str.replace('.', '', regex=False).str.replace('-', '', regex=False).replace('nan', '')
         
-    # 保存映射文件 (Excel 中保留 \t 防截断)
-    df_out.to_excel(template_path, index=False)
-    
-    # 保存 CSV 文件 (供上传 DSers 使用，必须移除 \t 防止解析失败)
-    df_csv = df_out.copy()
-    if 'Order_number' in df_csv.columns:
-        df_csv['Order_number'] = df_csv['Order_number'].astype(str).str.strip()
+    # 保存映射文件
+    save_df_to_excel(df_out, template_path)
     csv_path = template_path.replace('.xlsx', '.csv')
-    df_csv.to_csv(csv_path, index=False, encoding='utf-8-sig')
+    df_out.to_csv(csv_path, index=False, encoding='utf-8-sig')
     
     print(f"✅ 第二阶段：成功将 {len(df_out)} 条数据完美映射到 DSers 导入模板！")
     print(f"📂 生成文件: {template_path}")

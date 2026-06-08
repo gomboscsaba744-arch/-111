@@ -7,6 +7,7 @@ import sys
 
 # 导入中心化配置
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from automators.excel_utils import save_df_to_excel
 from config import DSERS_TEMPLATE
 
 async def run_mabang_export(user_data_dir: str, days: int = 1, sku_val: str = 'code', headless: bool = False, progress_callback=None):
@@ -406,14 +407,14 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, sku_val: str = 'c
                 final_df.columns = final_df.columns.str.strip()
                 log(f"[*] 完美合并完毕，总行数: {len(final_df)}，读取到的列: {list(final_df.columns)}")
                 
-                # 强制转换为字符串类型并前置\t，防止超出 15 位的订单号被 Pandas 和 Excel 科学计数法吞噬尾数
+                # 强制转换为字符串类型，防止超出 15 位的订单号被 Pandas 和 Excel 科学计数法吞噬尾数
                 if 'Order_number' in final_df.columns:
-                    final_df['Order_number'] = "\t" + final_df['Order_number'].astype(str)
+                    final_df['Order_number'] = final_df['Order_number'].astype(str)
                 if '交易编号' in final_df.columns:
-                    final_df['交易编号'] = "\t" + final_df['交易编号'].astype(str)
+                    final_df['交易编号'] = final_df['交易编号'].astype(str)
                 
                 output_excel = DSERS_TEMPLATE
-                final_df.to_excel(output_excel, index=False)
+                save_df_to_excel(final_df, output_excel)
                 log(f"[*] 成功生成 DSers 格式最终模板: {output_excel}")
             else:
                 log("[!] 未读取到任何有效数据，模板生成失败。")

@@ -5,6 +5,7 @@ import os
 
 # 导入中心化配置
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from automators.excel_utils import save_df_to_excel
 from config import DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV, SCRIPT_TEMPLATE
 
 def export_to_cpf_template():
@@ -23,8 +24,8 @@ def export_to_cpf_template():
     # 构造 Telegram 机器人需要的 脚本模板.xlsx (D列是CPF, E列是结果)
     # 标准列：A: 交易编号, B: 买家姓名, C: 客户账号, D: CPF, E: 结果
     df_cpf = pd.DataFrame()
-    # 强制加上 \t 前缀，防止用户用 Excel 软件手动双击打开时被 Excel 强制转化为科学计数法并吞噬尾数
-    df_cpf['订单编号'] = "\t" + df_dsers.get('Order_number', '').fillna('').astype(str).str.strip()
+    # 直接保留纯字符串
+    df_cpf['订单编号'] = df_dsers.get('Order_number', '').fillna('').astype(str).str.strip()
     df_cpf['客户姓名'] = df_dsers.get('Contact_person', '')
     
     cpf_raw = df_dsers.get('CPF(Brazil; Optional)', '').fillna('').astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
@@ -33,7 +34,7 @@ def export_to_cpf_template():
     df_cpf['TG_Result'] = '' # 空列用于接收结果
     
     try:
-        df_cpf.to_excel(script_template_path, index=False)
+        save_df_to_excel(df_cpf, script_template_path)
         print(f"✅ 成功将 DSers 订单桥接到 CPF 查名模板: {script_template_path}")
     except Exception as e:
         print(f"❌ 写入 脚本模板.xlsx 失败: {e}")
@@ -101,7 +102,10 @@ def merge_cpf_results():
     print(f"[*] 匹配完毕！共成功修正并回填了 {update_count} 个真实的客户姓名。")
     
     try:
-        df_dsers.to_excel(import_path, index=False)
+        # 保存回 DSers import_orders.xlsx
+        save_df_to_excel(df_dsers, import_path)
+        
+        # 顺便更新 CSV
         df_dsers.to_csv(import_csv_path, index=False, encoding='utf-8-sig')
         print(f"✅ 修正后的 DSers 订单已重新保存并覆盖: {import_csv_path}")
     except Exception as e:

@@ -7,6 +7,7 @@ import sys
 
 # 导入中心化配置
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from automators.excel_utils import save_df_to_excel
 from config import SCRIPT_TEMPLATE
 
 async def run_mabang_export(user_data_dir: str, days: int = 1, customer_id: str = '1000000257', headless: bool = False, progress_callback=None):
@@ -379,9 +380,9 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, customer_id: str 
                     
                     # 保存为最终的模板文件
                     if '订单编号' in df.columns:
-                        df['订单编号'] = "\t" + df['订单编号'].astype(str)
+                        df['订单编号'] = df['订单编号'].astype(str)
                     output_excel = SCRIPT_TEMPLATE
-                    df.to_excel(output_excel, index=False)
+                    save_df_to_excel(df, output_excel)
                     log(f"[*] 成功生成更新模板: {output_excel}")
                     log(f"[*] 预览前几行数据:\n{df.head(3)}")
             except Exception as e:

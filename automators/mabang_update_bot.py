@@ -102,15 +102,20 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
             
             # === 第四步：操作批处理功能 ===
             log("[*] 正在点击【批处理功能】菜单...")
+            
+            # 为了防止“高级筛选”等相邻元素在某些低分辨率/特殊布局下遮挡批处理按钮导致点错，直接在 DOM 里摧毁它们！
             await page.evaluate("""
-                const btns = Array.from(document.querySelectorAll('span'));
-                const batchBtn = btns.find(el => el.textContent.trim() === '批处理功能');
-                if (batchBtn) {
-                    batchBtn.click();
-                } else {
-                    console.error("找不到批处理功能按钮");
-                }
+                document.querySelectorAll('span').forEach(el => {
+                    if (el.textContent.includes('高级筛选') || el.textContent.includes('普通筛选') || el.textContent.includes('高级搜索')) {
+                        el.remove();
+                    }
+                });
             """)
+            await asyncio.sleep(1)
+            
+            # 此时使用原本正常的物理点击，绝对不会被覆盖，且能完美触发 Vue/layui 的 Hover 展开事件
+            batch_btn = page.locator('span.text.mr5.ml5:has-text("批处理功能")').first
+            await batch_btn.click(force=True)
             await asyncio.sleep(1.5)
             
             # 还原人类操作模式：精准定位带特定标记的菜单层级
@@ -120,14 +125,8 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
             await asyncio.sleep(1)
             
             log("[*] 正在点击子菜单【更新订单基本信息】...")
-            # 使用 JS 直接点击以防止任何覆盖阻挡，扫描所有没有子元素的节点
-            await page.evaluate("""
-                const items = Array.from(document.querySelectorAll('*'));
-                const target = items.find(el => el.children.length === 0 && el.textContent.trim() === '更新订单基本信息');
-                if (target) {
-                    target.click();
-                }
-            """)
+            # 同样使用 force=True 原生物理点击，防止在极端情况下因为动画没做完而被截胡
+            await menu_item.locator('text="更新订单基本信息"').first.click(force=True)
             await asyncio.sleep(2)
             
             # === 第五步：注入数据 ===

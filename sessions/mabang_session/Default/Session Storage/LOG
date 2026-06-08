@@ -1,3 +1,6 @@
-2026/06/08-16:49:49.732 d05d4f Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/MANIFEST-000001
-2026/06/08-16:49:49.733 d05d4f Recovering log #13
-2026/06/08-16:49:49.734 d05d4f Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/000013.log 
+2026/06/08-18:12:06.962 d18ee7 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/MANIFEST-000001
+2026/06/08-18:12:06.963 d18ee7 Recovering log #13
+2026/06/08-18:12:06.963 d18ee7 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/000013.log 
+2026/06/08-18:12:57.933 d18eea Level-0 table #17: started
+2026/06/08-18:12:57.937 d18eea Level-0 table #17: 9893 bytes OK
+2026/06/08-18:12:57.942 d18eea Delete type=0 #13
