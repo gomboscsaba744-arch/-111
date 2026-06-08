@@ -1,0 +1,14 @@
+# Global Order Pipeline - 全局配置文件
+
+# 马帮 ERP 配置
+mabang:
+  url: "https://901067.private.mabangerp.com/index.htm"
+  username: "13805763201"
+  password: "@Yy19841027."
+
+# 其他平台配置预留
+dsers:
+  url: "https://accounts.dsers.com/accounts/login"
+
+telegram:
+  url: "https://web.telegram.org/k/"

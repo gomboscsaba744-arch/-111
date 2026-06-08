@@ -1,0 +1,14 @@
+2026/06/08-16:14:19.675 cf0e0f Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/IndexedDB/https_www.dsers.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/08-16:14:19.676 cf0e0f Recovering log #34
+2026/06/08-16:14:19.676 cf0e0f Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/IndexedDB/https_www.dsers.com_0.indexeddb.leveldb/000034.log 
+2026/06/08-16:14:19.676 cf0e0f Delete type=2 #32
+2026/06/08-16:14:19.683 cf0e1e Level-0 table #39: started
+2026/06/08-16:14:19.684 cf0e1e Level-0 table #39: 642 bytes OK
+2026/06/08-16:14:19.685 cf0e1e Delete type=0 #34
+2026/06/08-16:14:19.685 cf0e0d Manual compaction at level-0 from '\x00\x0c\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at '\x00\x0c\x00\x00\x05' @ 249 : 1
+2026/06/08-16:14:19.685 cf0e0d Compacting 1@0 + 1@1 files
+2026/06/08-16:14:19.686 cf0e0d Generated table #40@0: 42 keys, 1230 bytes
+2026/06/08-16:14:19.686 cf0e0d Compacted 1@0 + 1@1 files => 1230 bytes
+2026/06/08-16:14:19.687 cf0e0d compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/06/08-16:14:19.687 cf0e0d Delete type=2 #39
+2026/06/08-16:14:19.687 cf0e0d Manual compaction at level-0 from '\x00\x0c\x00\x00\x05' @ 249 : 1 .. '\x00\x0d\x00\x00\x00' @ 0 : 0; will stop at (end)

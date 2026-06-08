@@ -1,0 +1,6 @@
+2026/06/08-15:35:34.180 cda9b6 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Local Storage/leveldb/MANIFEST-000001
+2026/06/08-15:35:34.182 cda9b6 Recovering log #43
+2026/06/08-15:35:34.183 cda9b6 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Local Storage/leveldb/000043.log 
+2026/06/08-15:37:35.509 cda9b9 Level-0 table #47: started
+2026/06/08-15:37:35.511 cda9b9 Level-0 table #47: 28818 bytes OK
+2026/06/08-15:37:35.513 cda9b9 Delete type=0 #43

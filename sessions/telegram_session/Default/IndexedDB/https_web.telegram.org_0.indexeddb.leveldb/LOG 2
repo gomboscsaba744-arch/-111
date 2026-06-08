@@ -1,0 +1,21 @@
+2026/06/05-15:04:34.661 965b16 Reusing MANIFEST /Users/a171325./Documents/cpf改名/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/05-15:04:34.661 965b16 Recovering log #217
+2026/06/05-15:04:34.665 965b16 Reusing old log /Users/a171325./Documents/cpf改名/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/000217.log 
+2026/06/05-15:06:38.843 965b24 Level-0 table #222: started
+2026/06/05-15:06:38.858 965b24 Level-0 table #222: 1619831 bytes OK
+2026/06/05-15:06:38.861 965b24 Delete type=0 #217
+2026/06/05-15:06:57.616 965b16 Compacting 1@1 + 1@2 files
+2026/06/05-15:06:57.622 965b16 Generated table #223@1: 813 keys, 46146 bytes
+2026/06/05-15:06:57.622 965b16 Compacted 1@1 + 1@2 files => 46146 bytes
+2026/06/05-15:06:57.623 965b16 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/05-15:06:57.624 965b16 Delete type=2 #222
+2026/06/05-15:06:57.624 965b16 Delete type=2 #219
+2026/06/05-15:20:10.878 965b16 Level-0 table #225: started
+2026/06/05-15:20:10.896 965b16 Level-0 table #225: 1640765 bytes OK
+2026/06/05-15:20:10.899 965b16 Delete type=0 #221
+2026/06/05-15:20:32.377 965b16 Compacting 1@1 + 1@2 files
+2026/06/05-15:20:32.390 965b16 Generated table #226@1: 809 keys, 43541 bytes
+2026/06/05-15:20:32.391 965b16 Compacted 1@1 + 1@2 files => 43541 bytes
+2026/06/05-15:20:32.393 965b16 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/05-15:20:32.393 965b16 Delete type=2 #223
+2026/06/05-15:20:32.393 965b16 Delete type=2 #225
