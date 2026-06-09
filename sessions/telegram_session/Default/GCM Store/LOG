@@ -1,4 +1,3 @@
-2026/06/08-15:35:38.326 cdab00 Creating DB /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/GCM Store since it was missing.
-2026/06/08-15:35:38.333 cdab00 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/GCM Store/MANIFEST-000001
-2026/06/08-15:35:38.334 cdab00 Recovering log #3
-2026/06/08-15:35:38.335 cdab00 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/GCM Store/000003.log 
+2026/06/09-10:15:31.609 e2bf8c Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/GCM Store/MANIFEST-000001
+2026/06/09-10:15:31.613 e2bf8c Recovering log #3
+2026/06/09-10:15:31.613 e2bf8c Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/GCM Store/000003.log 

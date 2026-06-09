@@ -1,62 +1,9 @@
-2026/06/08-15:35:34.526 cda977 Creating DB /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb since it was missing.
-2026/06/08-15:35:34.533 cda977 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/MANIFEST-000001
-2026/06/08-15:35:34.533 cda977 Recovering log #241
-2026/06/08-15:35:34.539 cda977 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/000241.log 
-2026/06/08-15:35:34.539 cda977 Delete type=2 #243
-2026/06/08-15:37:34.796 cda96e Level-0 table #243: started
-2026/06/08-15:37:34.813 cda96e Level-0 table #243: 1599747 bytes OK
-2026/06/08-15:37:34.815 cda96e Delete type=0 #241
-2026/06/08-15:42:21.105 cda977 Level-0 table #245: started
-2026/06/08-15:42:21.115 cda977 Level-0 table #245: 1633006 bytes OK
-2026/06/08-15:42:21.116 cda977 Delete type=0 #242
-2026/06/08-15:42:39.802 cda96e Compacting 1@1 + 1@2 files
-2026/06/08-15:42:39.816 cda96e Generated table #246@1: 816 keys, 48896 bytes
-2026/06/08-15:42:39.816 cda96e Compacted 1@1 + 1@2 files => 48896 bytes
-2026/06/08-15:42:39.817 cda96e compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/08-15:42:39.818 cda96e Delete type=2 #243
-2026/06/08-15:42:39.818 cda96e Delete type=2 #245
-2026/06/08-15:46:46.044 cda96e Level-0 table #248: started
-2026/06/08-15:46:46.061 cda96e Level-0 table #248: 1649886 bytes OK
-2026/06/08-15:46:46.063 cda96e Delete type=0 #244
-2026/06/08-15:47:15.765 cda96c Compacting 1@1 + 1@2 files
-2026/06/08-15:47:15.773 cda96c Generated table #249@1: 813 keys, 42373 bytes
-2026/06/08-15:47:15.773 cda96c Compacted 1@1 + 1@2 files => 42373 bytes
-2026/06/08-15:47:15.774 cda96c compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/08-15:47:15.774 cda96c Delete type=2 #248
-2026/06/08-15:47:15.774 cda96c Delete type=2 #246
-2026/06/08-15:50:52.848 cda96e Level-0 table #251: started
-2026/06/08-15:50:52.870 cda96e Level-0 table #251: 1641692 bytes OK
-2026/06/08-15:50:52.872 cda96e Delete type=0 #247
-2026/06/08-15:52:01.028 cda977 Compacting 1@1 + 1@2 files
-2026/06/08-15:52:01.036 cda977 Generated table #252@1: 813 keys, 41362 bytes
-2026/06/08-15:52:01.036 cda977 Compacted 1@1 + 1@2 files => 41362 bytes
-2026/06/08-15:52:01.037 cda977 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/08-15:52:01.037 cda977 Delete type=2 #249
-2026/06/08-15:52:01.037 cda977 Delete type=2 #251
-2026/06/08-15:56:16.912 cda96e Level-0 table #254: started
-2026/06/08-15:56:16.926 cda96e Level-0 table #254: 1633442 bytes OK
-2026/06/08-15:56:16.928 cda96e Delete type=0 #250
-2026/06/08-15:56:34.281 cda96c Compacting 1@1 + 1@2 files
-2026/06/08-15:56:34.290 cda96c Generated table #255@1: 807 keys, 43702 bytes
-2026/06/08-15:56:34.290 cda96c Compacted 1@1 + 1@2 files => 43702 bytes
-2026/06/08-15:56:34.292 cda96c compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/08-15:56:34.292 cda96c Delete type=2 #254
-2026/06/08-15:56:34.292 cda96c Delete type=2 #252
-2026/06/08-16:00:18.196 cda96c Level-0 table #257: started
-2026/06/08-16:00:18.217 cda96c Level-0 table #257: 1632550 bytes OK
-2026/06/08-16:00:18.219 cda96c Delete type=0 #253
-2026/06/08-16:00:47.380 cda96c Compacting 1@1 + 1@2 files
-2026/06/08-16:00:47.389 cda96c Generated table #258@1: 813 keys, 42440 bytes
-2026/06/08-16:00:47.389 cda96c Compacted 1@1 + 1@2 files => 42440 bytes
-2026/06/08-16:00:47.391 cda96c compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/08-16:00:47.391 cda96c Delete type=2 #255
-2026/06/08-16:00:47.391 cda96c Delete type=2 #257
-2026/06/08-16:11:10.443 cda96e Level-0 table #260: started
-2026/06/08-16:11:10.455 cda96e Level-0 table #260: 1616372 bytes OK
-2026/06/08-16:11:10.458 cda96e Delete type=0 #256
-2026/06/08-16:11:34.747 cda96c Compacting 1@1 + 1@2 files
-2026/06/08-16:11:34.753 cda96c Generated table #261@1: 807 keys, 43806 bytes
-2026/06/08-16:11:34.754 cda96c Compacted 1@1 + 1@2 files => 43806 bytes
-2026/06/08-16:11:34.756 cda96c compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/08-16:11:34.756 cda96c Delete type=2 #260
-2026/06/08-16:11:34.756 cda96c Delete type=2 #258
+2026/06/09-10:15:29.508 e2be83 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/09-10:15:29.508 e2be83 Recovering log #272
+2026/06/09-10:15:29.509 e2be83 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/000272.log 
+2026/06/09-10:15:29.664 e2be83 Compacting 1@1 + 1@2 files
+2026/06/09-10:15:29.670 e2be83 Generated table #275@1: 805 keys, 41321 bytes
+2026/06/09-10:15:29.670 e2be83 Compacted 1@1 + 1@2 files => 41321 bytes
+2026/06/09-10:15:29.675 e2be83 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/09-10:15:29.675 e2be83 Delete type=2 #273
+2026/06/09-10:15:29.675 e2be83 Delete type=2 #271

@@ -505,7 +505,19 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                                 print(f"[!] 消息含关键词但无图片无按钮: {reply_text[:80]!r}")
                                 match_min = re.search(r'(\d+)\s*minutos', reply_text.lower())
                                 if match_min:
-                                    print(f"[*] 判定为验证码过期提示。这可能是延迟的残留消息，暂不休眠，继续等待真实结果...")
+                                    if not getattr(send_query, "wait_min_attempts", False):
+                                        send_query.wait_min_attempts = 1
+                                        print(f"[*] 收到验证码过期/等待提示: {reply_text}。先尝试立即重新发送一次，看是否能刷出新验证码...")
+                                        await send_query()
+                                        attempts = 0
+                                    else:
+                                        wait_mins = int(match_min.group(1))
+                                        print(f"[*] 再次收到等待提示，确实需要等待 {wait_mins} 分钟。开始休眠...")
+                                        await asyncio.sleep(wait_mins * 60)
+                                        send_query.wait_min_attempts = 0
+                                        print(f"[*] 休眠结束，重新发送 CPF: {cpf_text} ...")
+                                        await send_query()
+                                        attempts = 0
                                 elif "muitas requisições" in reply_text.lower() or "suspenso" in reply_text.lower():
                                     print(f"[*] 判定为频率限制或封禁，5 分钟后重新发送 CPF: {cpf_text} ...")
                                     await asyncio.sleep(300)

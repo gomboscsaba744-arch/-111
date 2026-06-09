@@ -27,31 +27,120 @@ st.markdown("""
     [data-testid="stSidebar"] { display: none !important; }
     header { visibility: hidden !important; }
 
-    /* 高级极简背景：纯净浅灰白底色，带极其微弱的柔和晕影 */
-    .stApp {
-        background-color: #FBFBFD !important; /* Apple-like light gray */
-        background-image: 
-            radial-gradient(circle at 15% 10%, rgba(220, 226, 235, 0.6) 0%, transparent 40%),
-            radial-gradient(circle at 85% 85%, rgba(235, 230, 240, 0.5) 0%, transparent 40%),
-            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
-        background-attachment: fixed;
-    }
+    /* =========================================
+       VISION PRO 级：空间计算 3D 极致动态引擎 (Spatial Computing Engine)
+       ========================================= */
 
-    /* 极致高透毛玻璃容器 */
-    [data-testid="stVerticalBlockBorderWrapper"] {
-        background: rgba(255, 255, 255, 0.15) !important;
-        backdrop-filter: blur(50px) saturate(180%) !important;
-        -webkit-backdrop-filter: blur(50px) saturate(180%) !important;
-        border: 1px solid rgba(255, 255, 255, 0.6) !important;
-        border-radius: 24px !important;
-        box-shadow: 0 10px 40px -10px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.7) !important;
-        padding: 2.5rem !important;
-        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background-color: transparent !important;
     }
     
-    [data-testid="stVerticalBlockBorderWrapper"]:hover {
-        background: rgba(255, 255, 255, 0.25) !important;
-        box-shadow: 0 15px 50px -10px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8) !important;
+    /* 沸腾的极光能量场背景 */
+    .stApp::before {
+        content: "";
+        position: fixed;
+        top: -50%; left: -50%;
+        width: 200%; height: 200%;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(255, 107, 107, 0.4), transparent 60%),
+            radial-gradient(circle at 80% 80%, rgba(72, 219, 251, 0.4), transparent 60%),
+            radial-gradient(circle at 20% 80%, rgba(255, 159, 67, 0.4), transparent 60%),
+            radial-gradient(circle at 80% 20%, rgba(84, 160, 255, 0.4), transparent 60%);
+        animation: energyField 12s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate;
+        z-index: -2;
+        filter: blur(80px);
+    }
+    
+    .stApp::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: #f4f5f7;
+        z-index: -3;
+    }
+
+    @keyframes energyField {
+        0% { transform: scale(1) rotate(0deg); }
+        100% { transform: scale(1.3) rotate(45deg); }
+    }
+
+    /* 恢复 liquidReveal 给按钮使用 */
+    @keyframes liquidReveal {
+        0% { opacity: 0; transform: translateY(40px) scale(0.98); filter: blur(12px); }
+        100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    /* 夸张的 3D 弹簧入场 (Hyper-Spring Reveal) */
+    @keyframes hyperSpringReveal {
+        0% { 
+            opacity: 0; 
+            transform: perspective(2000px) translateY(150px) translateZ(-300px) rotateX(20deg) scale(0.8); 
+            filter: blur(30px); 
+        }
+        100% { 
+            opacity: 1; 
+            transform: perspective(2000px) translateY(0) translateZ(0) rotateX(0deg) scale(1); 
+            filter: blur(0); 
+        }
+    }
+
+    /* 极致高透毛玻璃容器 - 3D 悬浮态 */
+    [data-testid="stVerticalBlockBorderWrapper"],
+    div[data-testid="stVerticalBlock"] > div[style*="border"],
+    div[class*="st-emotion-cache"][style*="border"] {
+        background: rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(60px) saturate(250%) !important;
+        -webkit-backdrop-filter: blur(60px) saturate(250%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.7) !important;
+        border-radius: 2.5rem !important; 
+        box-shadow: 
+            0 10px 30px rgba(0,0,0,0.05),
+            inset 0 2px 0 0 rgba(255,255,255,0.8),
+            inset 0 0 20px rgba(255,255,255,0.5) !important;
+        padding: 3.5rem !important;
+        
+        /* 核心 3D 交互配置 */
+        transform-style: preserve-3d;
+        transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                    box-shadow 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    background 0.4s !important;
+        
+        /* 夸张弹簧入场 */
+        animation: hyperSpringReveal 1.2s cubic-bezier(0.2, 0.8, 0.2, 1.2) forwards;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* 容器上的无限反射光效 (Infinite Shimmer Sweep) */
+    [data-testid="stVerticalBlockBorderWrapper"]::after,
+    div[data-testid="stVerticalBlock"] > div[style*="border"]::after {
+        content: "";
+        position: absolute;
+        top: 0; left: -150%;
+        width: 50%; height: 100%;
+        background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.6) 50%, rgba(255,255,255,0) 100%);
+        transform: skewX(-25deg);
+        animation: glassSweep 4s ease-in-out infinite;
+        pointer-events: none;
+    }
+
+    @keyframes glassSweep {
+        0% { left: -150%; }
+        50% { left: 200%; }
+        100% { left: 200%; }
+    }
+    
+    /* 暴力 3D 翻转破雪交互 (Violent 3D Hover) */
+    [data-testid="stVerticalBlockBorderWrapper"]:hover,
+    div[data-testid="stVerticalBlock"] > div[style*="border"]:hover {
+        background: rgba(255, 255, 255, 0.4) !important;
+        /* 直接让卡片飞出来并发生 3D 偏转 */
+        transform: perspective(2000px) translateZ(80px) translateY(-10px) rotateX(4deg) rotateY(-2deg) scale(1.02);
+        box-shadow: 
+            -20px 40px 80px -10px rgba(0,0,0,0.15), 
+            inset 0 2px 0 0 rgba(255,255,255,1), 
+            inset 0 0 60px rgba(255,255,255,0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 1) !important;
     }
 
     h1, h2, h3, h4, h5 {
@@ -74,89 +163,337 @@ st.markdown("""
 
 if st.session_state.route is None:
     # ==========================
-    # 首页大屏视觉效果 (Home Screen)
+    # 首页大屏视觉效果 (Home Screen) - Agency Tier
     # ==========================
     st.markdown("""
     <style>
-        /* 高级极简巨型卡片按钮 */
-        [data-testid="stButton"] button {
-            height: 400px !important;
-            width: 100% !important;
-            border-radius: 32px !important;
-            background: rgba(255, 255, 255, 0.4) !important;
-            border: 1px solid rgba(255, 255, 255, 0.8) !important;
-            backdrop-filter: blur(20px) !important;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03) !important;
-            transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1) !important;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        
+        /* 强制全屏容器使用特定字体，并去除强制深黑背景 */
+        [data-testid="stAppViewContainer"], .block-container {
+            font-family: 'Plus Jakarta Sans', sans-serif !important;
+        }
+        
+        .block-container {
+            padding-top: 8rem !important;
+            max-width: 1400px !important;
+        }
+
+        /* 完美隐藏原生按钮，不影响 DOM 布局 */
+        [data-testid="stButton"] {
+            position: absolute !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            width: 0 !important;
+            overflow: hidden !important;
+            pointer-events: none !important;
+        }
+        
+        /* ====================
+           ULTRA-CLEAR ETHEREAL GLASS CARDS (近乎全透玻璃材质)
+           ==================== */
+        .premium-card-outer {
+            padding: 0.5rem;
+            border-radius: 2.5rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 30px 60px rgba(0,0,0,0.05);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
             position: relative;
             overflow: hidden;
+            height: 520px;
+            will-change: transform;
+        }
+        
+        .premium-card-inner {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2.125rem;
+            height: 100%;
+            padding: 3.5rem 2.5rem;
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(50px) saturate(120%);
+            -webkit-backdrop-filter: blur(50px) saturate(120%);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* 径向网格渐变背景 */
+        .premium-card-outer::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.8), transparent 60%);
+            opacity: 0.2;
+            transition: opacity 0.8s ease;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        /* Kinetic Hover Physics */
+        .premium-card-outer:hover {
+            transform: translateY(-12px) scale(1.02);
+            border: 1px solid rgba(255, 255, 255, 1);
+            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%);
+            box-shadow: 0 40px 80px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5);
+            cursor: pointer;
+        }
+        
+        .premium-card-outer:hover .premium-card-inner {
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
+        }
+        
+        .premium-card-outer:hover::before {
+            opacity: 1;
+        }
+        
+        /* Active Scale Simulation */
+        .premium-card-outer:active {
+            transform: scale(0.97);
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Typography inside cards */
+        .card-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            border-radius: 1.5rem;
+            background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.1) 100%);
+            border: 1px solid rgba(255, 255, 255, 1);
+            display: flex;
+            align-items: center;
             justify-content: center;
+            font-size: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: inset 0 2px 4px rgba(255,255,255,0.5), 0 10px 20px rgba(0,0,0,0.1);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
         
-        /* 微光平滑悬浮效果 */
-        [data-testid="stButton"] button:hover {
-            transform: translateY(-4px) scale(1.01) !important;
-            background: rgba(255, 255, 255, 0.7) !important;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04) !important;
-        }
-        
-        /* 字体样式 - 优雅呼吸感 */
-        [data-testid="stButton"] button p {
-            font-size: 32px !important;
-            font-weight: 500 !important;
+        .card-title {
+            font-size: 2.4rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 1rem;
             color: #1d1d1f !important;
-            line-height: 1.4 !important;
-            white-space: pre-wrap;
-            letter-spacing: -0.01em !important;
+            background: linear-gradient(135deg, #000000 0%, #434345 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
         }
         
-        .main-title {
-            text-align: center;
-            font-size: 4.5rem;
+        .card-desc {
+            font-size: 1.15rem;
+            color: #555555 !important;
+            line-height: 1.6;
+            font-weight: 500;
+            letter-spacing: 0.01em;
+        }
+        
+        /* Button-in-Button Architecture (Island CTA) */
+        .island-btn {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            border-radius: 9999px;
+            padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+            margin-top: 2rem;
+            width: fit-content;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        }
+        
+        .island-btn-text {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #333333 !important;
+            margin-right: 1.5rem;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            transition: color 0.5s ease;
+        }
+        
+        .island-btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #1d1d1f;
+            color: #ffffff !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin-top: 6vh;
-            margin-bottom: 8vh;
-            color: #1d1d1f;
-            letter-spacing: -0.03em;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        /* 联动 Hover Physics */
+        .premium-card-outer:hover .card-icon-wrapper {
+            transform: scale(1.05) translateY(-4px);
+            background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 100%);
+        }
+        .premium-card-outer:hover .island-btn {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+        }
+        .premium-card-outer:hover .island-btn-text {
+            color: #000000 !important;
+        }
+        .premium-card-outer:hover .island-btn-icon {
+            transform: translateX(4px) scale(1.05);
+            background: #000000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
     </style>
+    
+    <div style="text-align: center; margin-bottom: 6rem; animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px);">
+        <div style="display:inline-block; padding: 0.5rem 1.2rem; border-radius: 9999px; border: 1px solid rgba(0,0,0,0.1); background: rgba(255,255,255,0.4); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 2.5rem; color: #555555; backdrop-filter: blur(10px); font-weight: 600;">
+            Vanguard Systems
+        </div>
+        <h1 style="font-size: 5.5rem; font-weight: 800; letter-spacing: -0.04em; background: linear-gradient(180deg, #1d1d1f 0%, #666666 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 1.5rem; line-height: 1;">Pipeline Studio</h1>
+        <p style="font-size: 1.4rem; font-weight: 500; color: #666666; letter-spacing: 0.02em;">Select your intelligence distribution route.</p>
+    </div>
     """, unsafe_allow_html=True)
 
-    st.markdown('<div class="main-title">Global Pipeline Studio</div>', unsafe_allow_html=True)
-
-    c1, c2, c3, c4 = st.columns([1, 4, 4, 1], gap="large")
-    with c2:
-        if st.button("🎯\n路线 A\nCPF 洗白补全流", use_container_width=True):
+    col1, col2 = st.columns(2, gap="large")
+    
+    with col1:
+        st.markdown("""
+        <div class="premium-card-outer" style="animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0;">
+            <div class="premium-card-inner">
+                <div>
+                    <div class="card-icon-wrapper">🔍</div>
+                    <div class="card-title">CPF 解析管线</div>
+                    <div class="card-desc">
+                        核心身份验真引擎<br>
+                        Telegram 智能辅助查名<br>
+                        与 ERP 无缝回填闭环
+                    </div>
+                </div>
+                <div class="island-btn">
+                    <span class="island-btn-text">Initiate Route</span>
+                    <span class="island-btn-icon">↗</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("CPF_ROUTE_HIDDEN_123"):
             st.session_state.route = "A"
             st.rerun()
-    with c3:
-        if st.button("📦\n路线 B\nDSers 铺货代发流", use_container_width=True):
+            
+    with col2:
+        st.markdown("""
+        <div class="premium-card-outer" style="animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0;">
+            <div class="premium-card-inner">
+                <div>
+                    <div class="card-icon-wrapper">📦</div>
+                    <div class="card-title">DSERS 铺货管线</div>
+                    <div class="card-desc">
+                        跨境订单深度倒模映射<br>
+                        一键推送建单发货流转<br>
+                        全链路自动追踪同步
+                    </div>
+                </div>
+                <div class="island-btn">
+                    <span class="island-btn-text">Initiate Route</span>
+                    <span class="island-btn-icon">↗</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("DSERS_ROUTE_HIDDEN_123"):
             st.session_state.route = "B"
             st.rerun()
 
+    # ==========================
+    # 彻底解决点击问题：JS 事件透传引擎
+    # ==========================
+    import streamlit.components.v1 as components
+    components.html("""
+    <script>
+        // 监听顶级 window，跨 iframe 穿透
+        const parentDoc = window.parent.document;
+        
+        // 由于 Streamlit 组件加载存在微小延迟，使用轮询确保绑定成功
+        let attempts = 0;
+        const bindClicks = setInterval(() => {
+            attempts++;
+            const cards = parentDoc.querySelectorAll('.premium-card-outer');
+            const buttons = parentDoc.querySelectorAll('button[kind="secondary"]');
+            
+            // 确保找到了两个卡片和足够的按钮
+            if (cards.length >= 2 && buttons.length >= 2) {
+                clearInterval(bindClicks);
+                
+                cards.forEach((card, index) => {
+                    // 只绑定前两个主页卡片
+                    if (index > 1) return; 
+                    
+                    // 确保光标为手型
+                    card.style.cursor = 'pointer';
+                    
+                    // 移除旧监听器避免重复绑定
+                    card.onclick = null; 
+                    
+                    card.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // 触发对应按钮的点击
+                        // Streamlit 的最新按钮可能在深层，直接对其原生节点 dispatchEvent
+                        const btn = buttons[index];
+                        btn.click();
+                    };
+                });
+            }
+            
+            // 超时保护
+            if (attempts > 20) {
+                clearInterval(bindClicks);
+                console.error("Vanguard Pipeline: JS Click Binding Failed");
+            }
+        }, 100);
+    </script>
+    """, height=0, width=0)
+
 else:
     # ==========================
-    # 具体管线内页配置 (Route Screen)
+    # 内部操作流视图 (Inner Route View)
     # ==========================
     st.markdown("""
     <style>
         /* 返回主界面特定按钮伪装 */
         .back-btn-container [data-testid="stButton"] button {
             background: rgba(255,255,255,0.8) !important;
+            border: 1px solid rgba(0,0,0,0.05) !important;
             color: #1d1d1f !important;
             border-radius: 12px !important;
             padding: 0.5rem 1rem !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-            border: 1px solid rgba(255,255,255,0.5) !important;
             transition: all 0.3s ease !important;
+            animation: liquidReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
             font-weight: 500 !important;
         }
         .back-btn-container [data-testid="stButton"] button:hover {
             background: #ffffff !important;
             transform: translateY(-1px) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
+        }
+        .back-btn-container [data-testid="stButton"] button:active {
+            transform: scale(0.96) !important;
+            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         
         /* 底部超级启动按钮 - Apple-like Primary Button */
@@ -170,12 +507,14 @@ else:
             font-weight: 600 !important;
             width: 100% !important;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-            transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1) !important;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation-delay: 0.3s;
+            opacity: 0;
         }
         .launch-btn-container [data-testid="stButton"] button:hover {
-            background: #000000 !important;
-            transform: translateY(-2px) scale(1.005) !important;
-            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18) !important;
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.4) !important;
+            filter: hue-rotate(15deg) brightness(1.1);
         }
     </style>
     """, unsafe_allow_html=True)
@@ -364,6 +703,7 @@ else:
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         log_container.success(f"✅ [阶段 1] 数据源萃取圆满成功！")
+                        current_excel_path = SCRIPT_TEMPLATE
                     else:
                         log_container.error(f"❌ 马帮引擎报错:\n{result.stderr}")
                         st.stop()
