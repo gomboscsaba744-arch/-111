@@ -4,14 +4,63 @@ import asyncio
 import os
 import subprocess
 
-from config import MODE1_EXCEL, MODE2_EXCEL, MODE3_EXCEL, MODE4_EXCEL, TELEGRAM_SESSION_DIR, DATA_DIR, DSERS_SESSION_DIR, DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV, SCRIPT_TEMPLATE
+from config import MODE1_EXCEL, MODE2_EXCEL, MODE3_EXCEL, MODE4_EXCEL, TELEGRAM_SESSION_DIR, DATA_DIR, DSERS_SESSION_DIR, DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV, SCRIPT_TEMPLATE, ORDER_TEMPLATE
 from automators.telegram_cpf_bot import run_cpf_query
 from automators.dsers_update_bot import run_dsers_rename
+from automators.order_template_utils import clean_order_template_to_script, sync_cpf_results_to_order_template
 
 st.set_page_config(page_title="Global Pipeline Studio", layout="wide", initial_sidebar_state="collapsed")
 
 if 'route' not in st.session_state:
     st.session_state.route = None
+
+@st.dialog("🎯 模板匹配选择与挂载")
+def select_uploaded_template_dialog(file_buffer, file_id):
+    st.markdown("检测到您已成功传回新表格，请指定此文件对应的模板规格：")
+    template_choice = st.radio(
+        "请选择对应模板：",
+        ["dsers模板.xlsx", "import_orders.xlsx", "脚本模板.xlsx", "下单模板.xlsx"],
+        index=0,
+        label_visibility="collapsed"
+    )
+    if st.button("确认并载入", type="primary", use_container_width=True):
+        st.session_state["handled_file_id"] = file_id
+        st.session_state["active_template_type"] = template_choice
+        
+        if template_choice == "dsers模板.xlsx":
+            dest_path = DSERS_TEMPLATE
+        elif template_choice == "import_orders.xlsx":
+            dest_path = DSERS_IMPORT_XLSX
+        elif template_choice == "脚本模板.xlsx":
+            dest_path = SCRIPT_TEMPLATE
+        else:
+            dest_path = ORDER_TEMPLATE
+            
+        with open(dest_path, "wb") as f:
+            f.write(file_buffer)
+            
+        if template_choice == "下单模板.xlsx":
+            clean_order_template_to_script(dest_path, SCRIPT_TEMPLATE, st.session_state.route, sw_dsers_rename=False)
+            
+        st.rerun()
+
+def on_dsers_rename_change():
+    if st.session_state.get("sw_dsers_rename_key", False):
+        st.session_state["sw_dsers_clean_key"] = False
+        st.session_state["sw_dsers_cpf_check_key"] = False
+        st.session_state["sw_dsers_cpf_merge_key"] = False
+        st.session_state["sw_dsers_mabang_key"] = False
+        st.session_state["sw_dsers_import_key"] = False
+
+def on_dsers_normal_change():
+    if any([
+        st.session_state.get("sw_dsers_clean_key", False),
+        st.session_state.get("sw_dsers_cpf_check_key", False),
+        st.session_state.get("sw_dsers_cpf_merge_key", False),
+        st.session_state.get("sw_dsers_mabang_key", False),
+        st.session_state.get("sw_dsers_import_key", False)
+    ]):
+        st.session_state["sw_dsers_rename_key"] = False
 
 # COMMON CSS (High-end Minimalist, High Transparency Glassmorphism)
 st.markdown("""
@@ -160,6 +209,44 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+
+import streamlit.components.v1 as components
+import os
+import urllib.parse
+
+try:
+    bg_html_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "3d_background", "dist", "index.html")
+    if os.path.exists(bg_html_path):
+        with open(bg_html_path, "r", encoding="utf-8") as f:
+            html_data = f.read()
+        
+        html_data_encoded = urllib.parse.quote(html_data)
+        
+        inject_script = f'''
+        <script>
+            const parentDoc = window.parent.document;
+            if (!parentDoc.getElementById("vanguard-3d-bg")) {{
+                const iframe = parentDoc.createElement("iframe");
+                iframe.id = "vanguard-3d-bg";
+                iframe.style.position = "fixed";
+                iframe.style.top = "0";
+                iframe.style.left = "0";
+                iframe.style.width = "100vw";
+                iframe.style.height = "100vh";
+                iframe.style.zIndex = "-1";
+                iframe.style.border = "none";
+                iframe.style.pointerEvents = "none";
+                iframe.srcdoc = decodeURIComponent("{html_data_encoded}");
+                parentDoc.body.appendChild(iframe);
+            }}
+        </script>
+        '''
+        components.html(inject_script, height=0, width=0)
+except Exception as e:
+    pass
+
+
 
 if st.session_state.route is None:
     # ==========================
@@ -533,7 +620,7 @@ else:
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
-    current_excel_path = MODE1_EXCEL
+    current_excel_path = SCRIPT_TEMPLATE if st.session_state.route == "A" else DSERS_TEMPLATE
 
     with st.container(border=True):
         st.markdown("### 🔌 1. 燃料接入 (Data Source)")
@@ -542,6 +629,7 @@ else:
         use_vault = (data_source == "使用前端已有表格")
 
         if sw_auto_export:
+            st.session_state["active_template_type"] = "脚本模板.xlsx"
             st.markdown("<br><b>马帮引擎检索参数：</b>", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
@@ -555,16 +643,30 @@ else:
             st.markdown("<br>", unsafe_allow_html=True)
             uploaded_file = st.file_uploader("请将您的 .xlsx 表格拖入此玻璃舱内", type=["xlsx", "xls"])
             if uploaded_file:
-                with open(current_excel_path, "wb") as f:
-                    f.write(uploaded_file.getbuffer())
-                st.success("✅ 数据源已挂载，燃料充足。")
+                file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+                if st.session_state.get("handled_file_id") != file_id:
+                    select_uploaded_template_dialog(uploaded_file.getbuffer(), file_id)
+                else:
+                    t_type = st.session_state.get("active_template_type", "脚本模板.xlsx")
+                    if t_type == "dsers模板.xlsx":
+                        current_excel_path = DSERS_TEMPLATE
+                    elif t_type == "import_orders.xlsx":
+                        current_excel_path = DSERS_IMPORT_XLSX
+                    elif t_type == "下单模板.xlsx":
+                        current_excel_path = ORDER_TEMPLATE
+                    else:
+                        current_excel_path = SCRIPT_TEMPLATE
+                    st.success(f"✅ 数据源已挂载 (当前归属模板：{t_type})，燃料充足。")
         else:
             st.markdown("<br>", unsafe_allow_html=True)
-            vault_file_choice = st.selectbox("🎯 请指定要继续往下执行流转的【起始表格】", ["dsers模板.xlsx", "import_orders.xlsx", "脚本模板.xlsx"])
+            vault_file_choice = st.selectbox("🎯 请指定要继续往下执行流转的【起始表格】", ["dsers模板.xlsx", "import_orders.xlsx", "脚本模板.xlsx", "下单模板.xlsx"])
+            st.session_state["active_template_type"] = vault_file_choice
             if vault_file_choice == "dsers模板.xlsx":
                 current_excel_path = DSERS_TEMPLATE
             elif vault_file_choice == "import_orders.xlsx":
                 current_excel_path = DSERS_IMPORT_XLSX
+            elif vault_file_choice == "下单模板.xlsx":
+                current_excel_path = ORDER_TEMPLATE
             else:
                 current_excel_path = SCRIPT_TEMPLATE
             
@@ -579,16 +681,18 @@ else:
         with st.container(border=True):
             st.markdown("### ⚙️ 2. 后置管线调配 (Actions)")
             sw_cpf_rename = st.toggle("💬 连通 Telegram 接口开启 CPF 智能查名", value=True)
+            sw_cpf_merge = st.toggle("独立将查名后的真实姓名同步回填至 DSers 相关表格", value=False)
             sw_mabang_update = st.toggle("🔄 将清洗结果全自动闭环回填至马帮 ERP", value=True)
     else:
         with st.container(border=True):
             st.markdown("### ⚙️ 2. 后置管线调配 (Actions)")
-            sw_dsers_clean = st.toggle("深度清洗并倒模映射到 DSers 标准模板", value=True)
-            sw_dsers_cpf_check = st.toggle("映射后进行 Telegram CPF 查名，并自动修正模板姓名", value=True)
-            sw_dsers_mabang = st.toggle("姓名查明后，回填更新到马帮 ERP (需配合查名使用)", value=True)
-            sw_dsers_import = st.toggle("执行全自动一键上传/建单到 DSers", value=True)
+            sw_dsers_clean = st.toggle("深度清洗并倒模映射到 DSers 标准模板", value=True, key="sw_dsers_clean_key", on_change=on_dsers_normal_change)
+            sw_dsers_cpf_check = st.toggle("映射后进行 Telegram CPF 查名，并提取正确姓名", value=True, key="sw_dsers_cpf_check_key", on_change=on_dsers_normal_change)
+            sw_dsers_cpf_merge = st.toggle("独立将查名后的真实姓名同步回填至 DSers 相关表格", value=True, key="sw_dsers_cpf_merge_key", on_change=on_dsers_normal_change)
+            sw_dsers_mabang = st.toggle("姓名查明后，回填更新到马帮 ERP (需配合查名使用)", value=True, key="sw_dsers_mabang_key", on_change=on_dsers_normal_change)
+            sw_dsers_import = st.toggle("执行全自动一键上传/建单到 DSers", value=True, key="sw_dsers_import_key", on_change=on_dsers_normal_change)
             st.markdown("---")
-            sw_dsers_rename = st.toggle("独立分支：针对已在 DSers 的订单做网页版精准改名", value=False)
+            sw_dsers_rename = st.toggle("独立分支：针对已在 DSers 的订单做网页版精准改名", value=False, key="sw_dsers_rename_key", on_change=on_dsers_rename_change)
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
@@ -597,7 +701,7 @@ else:
     # ==========================
     with st.expander("🗄️ 前端数据保险库 (Data Vault) - 实时查看内部底层表格", expanded=False):
         st.markdown("在这里，您可以直接预览隐藏流转的各种关键数据表，无需再去寻找源文件。")
-        vault_tabs = st.tabs(["dsers模板.xlsx", "import_orders.xlsx", "脚本模板.xlsx"])
+        vault_tabs = st.tabs(["dsers模板.xlsx", "import_orders.xlsx", "脚本模板.xlsx", "下单模板.xlsx"])
         
         with vault_tabs[0]:
             if os.path.exists(DSERS_TEMPLATE):
@@ -667,6 +771,29 @@ else:
                     st.warning(f"无法读取: {e}")
             else:
                 st.info("尚无该文件流转。")
+                
+        with vault_tabs[3]:
+            if os.path.exists(ORDER_TEMPLATE):
+                try:
+                    df4 = pd.read_excel(ORDER_TEMPLATE, dtype=str)
+                    st.caption(f"📊 当前表格规格：共 **{df4.shape[0]}** 行 (数据) × **{df4.shape[1]}** 列 (字段)")
+                    edited_df4 = st.data_editor(df4, num_rows="dynamic", use_container_width=True, key="edit_order")
+                    
+                    colA, colB = st.columns(2)
+                    with colA:
+                        if st.button("💾 手动保存修改", key="save_order"):
+                            if not df4.equals(edited_df4):
+                                edited_df4.to_excel(ORDER_TEMPLATE, index=False)
+                                st.success("✅ 修改已永久保存至 下单模板.xlsx")
+                            else:
+                                st.info("内容无变化，无需保存。")
+                    with colB:
+                        with open(ORDER_TEMPLATE, "rb") as f:
+                            st.download_button("📥 下载最新版 下单模板", f, "下单模板.xlsx", key="dl_order")
+                except Exception as e:
+                    st.warning(f"无法读取: {e}")
+            else:
+                st.info("尚无该文件流转。")
 
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
 
@@ -693,6 +820,12 @@ else:
         else:
             log_container = st.empty()
             
+            # --- 新增：下单模板的运行前置清洗与映射 ---
+            if st.session_state.get("active_template_type") == "下单模板.xlsx":
+                is_rename_active = (st.session_state.route == "B" and st.session_state.get("sw_dsers_rename_key", False))
+                clean_order_template_to_script(ORDER_TEMPLATE, SCRIPT_TEMPLATE, st.session_state.route, sw_dsers_rename=is_rename_active)
+                current_excel_path = SCRIPT_TEMPLATE
+            
             # --- 阶段 1 ---
             if sw_auto_export:
                 log_container.info("🔄 [阶段 1] 正在驱动马帮自动化萃取引擎...")
@@ -705,7 +838,7 @@ else:
                         log_container.success(f"✅ [阶段 1] 数据源萃取圆满成功！")
                         current_excel_path = SCRIPT_TEMPLATE
                     else:
-                        log_container.error(f"❌ 马帮引擎报错:\n{result.stderr}")
+                        log_container.error(f"❌ 马帮引擎报错:\n[STDOUT]:\n{result.stdout}\n[STDERR]:\n{result.stderr}")
                         st.stop()
                 except Exception as e:
                     log_container.error(f"执行异常: {e}")
@@ -720,8 +853,25 @@ else:
                     try:
                         asyncio.run(run_cpf_query(current_excel_path, TELEGRAM_SESSION_DIR, False, on_progress_cpf))
                         log_container.success("✅ [阶段 2] Telegram 查名与洗白任务收工！")
+                        
+                        if st.session_state.get("active_template_type") == "下单模板.xlsx":
+                            log_container.info("🔄 [同步] 正在将新查询的真名同步回下单模板 E 列...")
+                            sync_cpf_results_to_order_template(SCRIPT_TEMPLATE, ORDER_TEMPLATE)
+                            log_container.success("✅ [同步] 下单模板 E 列已更新为最新查询完成的姓名！")
                     except Exception as e:
                         log_container.error(f"❌ CPF终端故障: {e}")
+                        st.stop()
+                        
+                if sw_cpf_merge:
+                    log_container.info("🔄 [阶段 2.5] 独立回填：将正确姓名熔炼回填至 DSers 导入模板...")
+                    try:
+                        bridge_merge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "merge"], capture_output=True, text=True)
+                        if bridge_merge_res.returncode != 0:
+                            log_container.error(f"❌ 姓名回填失败:\nSTDOUT:\n{bridge_merge_res.stdout}\nSTDERR:\n{bridge_merge_res.stderr}")
+                            st.stop()
+                        log_container.success("✅ [阶段 2.5] 独立同步完毕，DSers 订单姓名已修正！")
+                    except Exception as e:
+                        log_container.error(f"回填执行异常: {e}")
                         st.stop()
 
                 if sw_mabang_update:
@@ -753,26 +903,39 @@ else:
                         st.stop()
                         
                 if sw_dsers_cpf_check:
-                    log_container.info("🔄 [阶段 2.5] 拦截检查 1/3: 提取 DSers 订单桥接至 CPF 模板...")
+                    log_container.info("🔄 [阶段 2.4] 拦截检查 1/2: 提取 DSers 订单桥接至 CPF 模板...")
                     try:
-                        bridge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "export"], capture_output=True, text=True)
-                        if bridge_res.returncode != 0:
-                            log_container.error(f"❌ 桥接提取失败:\n{bridge_res.stderr}")
-                            st.stop()
+                        if use_vault and vault_file_choice == "脚本模板.xlsx":
+                            log_container.info("🔄 [阶段 2.4] 拦截检查 1/2: (跳过桥接提取，因您已选择直接从脚本模板续传)")
+                        else:
+                            bridge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "export"], capture_output=True, text=True)
+                            if bridge_res.returncode != 0:
+                                log_container.error(f"❌ 桥接提取失败:\nSTDOUT:\n{bridge_res.stdout}\nSTDERR:\n{bridge_res.stderr}")
+                                st.stop()
                             
-                        log_container.info("🔄 [阶段 2.5] 拦截检查 2/3: 跨域连接 Telegram 逐个纠正姓名...")
+                        log_container.info("🔄 [阶段 2.4] 拦截检查 2/2: 跨域连接 Telegram 逐个纠正姓名...")
                         def on_progress_cpf(msg):
                             log_container.info(f"[TG 实时] {msg}")
                         asyncio.run(run_cpf_query(SCRIPT_TEMPLATE, TELEGRAM_SESSION_DIR, False, on_progress_cpf))
                         
-                        log_container.info("🔄 [阶段 2.5] 拦截检查 3/3: 将正确姓名完美熔炼回填至 DSers 导入模板...")
+                        if st.session_state.get("active_template_type") == "下单模板.xlsx":
+                            log_container.info("🔄 [同步] 正在将新查询的真名同步回下单模板 E 列...")
+                            sync_cpf_results_to_order_template(SCRIPT_TEMPLATE, ORDER_TEMPLATE)
+                            log_container.success("✅ [同步] 下单模板 E 列已更新为最新查询完成的姓名！")
+                    except Exception as e:
+                        log_container.error(f"拦截检查执行异常: {e}")
+                        st.stop()
+                        
+                if sw_dsers_cpf_merge:
+                    log_container.info("🔄 [阶段 2.5] 完美熔炼：将正确姓名回填至 DSers 导入模板...")
+                    try:
                         bridge_merge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "merge"], capture_output=True, text=True)
                         if bridge_merge_res.returncode != 0:
-                            log_container.error(f"❌ 姓名回填失败:\n{bridge_merge_res.stderr}")
+                            log_container.error(f"❌ 姓名回填失败:\nSTDOUT:\n{bridge_merge_res.stdout}\nSTDERR:\n{bridge_merge_res.stderr}")
                             st.stop()
                         log_container.success("✅ [阶段 2.5] 极限界哨完毕，所有订单姓名已通过官方系统修正为真名！")
                     except Exception as e:
-                        log_container.error(f"拦截检查执行异常: {e}")
+                        log_container.error(f"回填执行异常: {e}")
                         st.stop()
                         
                 if sw_dsers_mabang:
@@ -815,10 +978,28 @@ else:
                         st.stop()
                         
             # 清理前端 Data Vault 的缓存，强制刷新显示最新数据
-            for key in ['edit_dsers', 'edit_import', 'edit_script']:
+            for key in ['edit_dsers', 'edit_import', 'edit_script', 'edit_order']:
                 if key in st.session_state:
                     del st.session_state[key]
                     
             st.balloons()
-            log_container.success("🎉 报告 Commander，您下达的全链条战术指令已全栈执行完毕！(前端数据保险库已同步刷新)")
+            log_container.success("🎉 报告 Commander，全链条执行完毕！由于页面缓存，请刷新网页 (或按 Cmd+R) 以在上方 Data Vault 中查看最新表格数据。")
     st.markdown('</div>', unsafe_allow_html=True)
+
+with st.expander("🎛️ VANGUARD 光效引擎 (Visual Engine Tuning)", expanded=False):
+    thickness = st.slider("核心厚度 (Thickness)", 0.05, 0.30, 0.131, 0.001)
+    blur = st.slider("上下晕染 (Blur)", 0.01, 0.30, 0.12, 0.001)
+    brightness = st.slider("整体曝光 (Brightness)", 0.1, 2.0, 0.8, 0.01)
+
+st.components.v1.html(f'''
+<script>
+    const parentDoc = window.parent.document;
+    const iframe = parentDoc.getElementById("vanguard-3d-bg");
+    if (iframe && iframe.contentWindow) {{
+        iframe.contentWindow.postMessage({{
+            type: "UPDATE_STRANDS",
+            payload: {{ thickness: {thickness}, blur: {blur}, brightness: {brightness} }}
+        }}, "*");
+    }}
+</script>
+''', height=0)

@@ -1,3 +1,6 @@
-2026/06/08-13:33:27.586 cae982 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/Local Storage/leveldb/MANIFEST-000001
-2026/06/08-13:33:27.588 cae982 Recovering log #4
-2026/06/08-13:33:27.589 cae982 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/Local Storage/leveldb/000004.log 
+2026/06/30-14:12:08.606 2f64ed Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/Local Storage/leveldb/MANIFEST-000001
+2026/06/30-14:12:08.608 2f64ed Recovering log #74
+2026/06/30-14:12:08.608 2f64ed Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/Local Storage/leveldb/000074.log 
+2026/06/30-14:12:24.751 2f64ed Level-0 table #78: started
+2026/06/30-14:12:24.754 2f64ed Level-0 table #78: 14441 bytes OK
+2026/06/30-14:12:24.758 2f64ed Delete type=0 #74

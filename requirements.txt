@@ -4,3 +4,7 @@ openpyxl
 playwright
 ddddocr
 Pillow
+xlrd
+beautifulsoup4
+lxml
+html5lib

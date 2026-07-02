@@ -373,6 +373,7 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, customer_id: str 
                 abn_col = [c for c in df.columns if 'abnnumber' in c.lower()]
                 if not abn_col:
                     log("[!] 找不到 abnnumber 列！")
+                    raise Exception("导出的表格中缺失关键列 abnnumber，无法生成 CPF 模板！请检查马帮导出字段或检查导出是否为空。")
                 else:
                     abn_col = abn_col[0]
                     # 生成 D 列：文本格式的 "/cpf1 " + abnnumber
@@ -386,10 +387,11 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, customer_id: str 
                     log(f"[*] 成功生成更新模板: {output_excel}")
                     log(f"[*] 预览前几行数据:\n{df.head(3)}")
             except Exception as e:
-                log(f"[!] 处理表格文件时出错: {e}")
+                log(f"[!] 处理表格文件时出错 (表格可能被 Excel 占用打开中): {e}")
+                raise e
                 
         except Exception as e:
-            log(f"[!] 发生错误: {e}")
+            log(f"[!] 发生错误: {e}"); sys.exit(1)
             if not page.is_closed():
                 try:
                     await page.screenshot(path="debug_export_error.png")

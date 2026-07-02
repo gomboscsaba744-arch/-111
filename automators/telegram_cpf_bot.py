@@ -162,8 +162,11 @@ def solve_math_captcha(image_bytes):
         res_raw = res.lower().replace('x', '*').replace(' ', '')
         
         operator = None
+        # 0. 乘号特判防覆盖：OCR 对 'x' 的识别极准，若明确包含乘号则直接信任 OCR，防止被物理规则误判为减号
+        if '*' in res_raw:
+            operator = '*'
         # 1. 物理测量出的减号最准
-        if detected_op == '-':
+        elif detected_op == '-':
             operator = '-'
         # 2. 物理测量出的乘号极准（因为加号角落必定为空）
         elif detected_op == '*':
@@ -702,7 +705,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                             ws.cell(row=r_idx, column=5, value="提取失败")
                 
             try:
-                wb.save(EXCEL_PATH)
+                wb.save(excel_path)
             except PermissionError:
                 print(f"[!] 保存失败：请不要在 Excel 软件中打开此表格文件！会导致文件被锁定。")
                 

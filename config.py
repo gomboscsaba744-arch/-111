@@ -25,4 +25,5 @@ DSERS_TEMPLATE = os.path.join(DATA_DIR, "dsers模板.xlsx")
 DSERS_IMPORT_XLSX = os.path.join(DATA_DIR, "import_orders.xlsx")
 DSERS_IMPORT_CSV = os.path.join(DATA_DIR, "import_orders.csv")
 SCRIPT_TEMPLATE = os.path.join(DATA_DIR, "脚本模板.xlsx")
+ORDER_TEMPLATE = os.path.join(DATA_DIR, "下单模板.xlsx")
 

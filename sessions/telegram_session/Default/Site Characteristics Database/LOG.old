@@ -1,3 +1,4 @@
-2026/06/09-09:42:44.581 e1c420 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Site Characteristics Database/MANIFEST-000001
-2026/06/09-09:42:44.581 e1c420 Recovering log #3
-2026/06/09-09:42:44.581 e1c420 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Site Characteristics Database/000003.log 
+2026/07/01-09:12:44.351 374ebc Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Site Characteristics Database/MANIFEST-000001
+2026/07/01-09:12:44.353 374ebc Recovering log #3
+2026/07/01-09:12:44.353 374ebc (ignoring error) /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Site Characteristics Database/000003.log: dropping 2032 bytes; Corruption: checksum mismatch
+2026/07/01-09:12:44.353 374ebc Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/Site Characteristics Database/000003.log 

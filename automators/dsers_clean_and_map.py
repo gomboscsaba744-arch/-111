@@ -47,7 +47,10 @@ try:
         df['邮寄地址'] = df['邮寄地址'].fillna('').astype(str)
         df['邮寄地址'] = df['邮寄地址'].str.replace(r'\(.*?\)', '', regex=True)
         df['邮寄地址'] = df['邮寄地址'].str.replace(r'（.*?）', '', regex=True)
-        print("邮寄地址括号内容清洗完毕")
+        df['邮寄地址'] = df['邮寄地址'].str.replace('-', '', regex=False)
+        df['邮寄地址'] = df['邮寄地址'].str.replace('@', '', regex=False)
+        df['邮寄地址'] = df['邮寄地址'].str.replace('、', '', regex=False)
+        print("邮寄地址括号及特殊字符内容清洗完毕")
 
     # 4. 国家
     if '国家' in df.columns:

@@ -414,13 +414,18 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, sku_val: str = 'c
                     final_df['交易编号'] = final_df['交易编号'].astype(str)
                 
                 output_excel = DSERS_TEMPLATE
-                save_df_to_excel(final_df, output_excel)
-                log(f"[*] 成功生成 DSers 格式最终模板: {output_excel}")
+                try:
+                    save_df_to_excel(final_df, output_excel)
+                    log(f"[*] 成功生成 DSers 格式最终模板: {output_excel}")
+                except Exception as e:
+                    log(f"[!] 无法保存表格 (可能表格正被 Excel 占用打开): {e}")
+                    raise e
             else:
                 log("[!] 未读取到任何有效数据，模板生成失败。")
+                raise Exception("未读取到任何有效数据，模板生成失败。请检查是否没有订单数据，或重试。")
                 
         except Exception as e:
-            log(f"[!] 发生错误: {e}")
+            log(f"[!] 发生错误: {e}"); sys.exit(1)
             if not page.is_closed():
                 try:
                     await page.screenshot(path="debug_export_error.png")

@@ -1,3 +1,15 @@
-2026/06/09-10:14:25.142 e2b324 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/MANIFEST-000001
-2026/06/09-10:14:25.142 e2b324 Recovering log #16
-2026/06/09-10:14:25.142 e2b324 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/000016.log 
+2026/07/02-08:59:35.774 416b34 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/MANIFEST-000001
+2026/07/02-08:59:35.775 416b34 Recovering log #30
+2026/07/02-08:59:35.778 416b34 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/mabang_session/Default/Session Storage/000030.log 
+2026/07/02-08:59:36.763 416b37 Level-0 table #33: started
+2026/07/02-08:59:36.767 416b37 Level-0 table #33: 11197 bytes OK
+2026/07/02-08:59:36.769 416b37 Delete type=0 #30
+2026/07/02-08:59:36.770 416b34 Compacting 4@0 + 1@1 files
+2026/07/02-08:59:36.773 416b34 Generated table #34@0: 2747 keys, 37850 bytes
+2026/07/02-08:59:36.773 416b34 Compacted 4@0 + 1@1 files => 37850 bytes
+2026/07/02-08:59:36.774 416b34 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/07/02-08:59:36.775 416b34 Delete type=2 #29
+2026/07/02-08:59:36.775 416b34 Delete type=2 #21
+2026/07/02-08:59:36.775 416b34 Delete type=2 #33
+2026/07/02-08:59:36.775 416b34 Delete type=2 #27
+2026/07/02-08:59:36.775 416b34 Delete type=2 #24

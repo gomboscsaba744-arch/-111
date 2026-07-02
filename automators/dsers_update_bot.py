@@ -234,7 +234,10 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
             # --- 步骤 3.4: 修改 Contact Name ---
             try:
                 target_found = await page.evaluate('''() => {
-                    let dialogs = Array.from(document.querySelectorAll('.ant-drawer-content, .ant-modal-content, [role="dialog"]'));
+                    let dialogs = Array.from(document.querySelectorAll('.ant-drawer-content, .ant-modal-content, [role="dialog"]')).filter(el => {
+                        let rect = el.getBoundingClientRect();
+                        return rect.width > 0 && rect.height > 0;
+                    });
                     let container = dialogs.length > 0 ? dialogs[dialogs.length - 1] : document.body;
                     
                     let inps = Array.from(container.querySelectorAll('input[type="text"], input:not([type])'));

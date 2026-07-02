@@ -1,33 +1,24 @@
-2026/06/09-09:42:44.983 e1c41b Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/MANIFEST-000001
-2026/06/09-09:42:44.984 e1c41b Recovering log #259
-2026/06/09-09:42:44.988 e1c41b Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/000259.log 
-2026/06/09-09:44:23.083 e1c414 Level-0 table #264: started
-2026/06/09-09:44:23.107 e1c414 Level-0 table #264: 1624751 bytes OK
-2026/06/09-09:44:23.110 e1c414 Delete type=0 #259
-2026/06/09-09:44:34.654 e1c412 Compacting 1@1 + 1@2 files
-2026/06/09-09:44:34.665 e1c412 Generated table #265@1: 813 keys, 42476 bytes
-2026/06/09-09:44:34.665 e1c412 Compacted 1@1 + 1@2 files => 42476 bytes
-2026/06/09-09:44:34.668 e1c412 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/09-09:44:34.668 e1c412 Delete type=2 #261
-2026/06/09-09:44:34.668 e1c412 Delete type=2 #264
-2026/06/09-09:48:51.957 e1c41b Level-0 table #267: started
-2026/06/09-09:48:51.969 e1c41b Level-0 table #267: 1649977 bytes OK
-2026/06/09-09:48:51.972 e1c41b Delete type=0 #263
-2026/06/09-09:49:23.137 e1c412 Compacting 1@1 + 1@2 files
-2026/06/09-09:49:23.148 e1c412 Generated table #268@1: 808 keys, 46147 bytes
-2026/06/09-09:49:23.148 e1c412 Compacted 1@1 + 1@2 files => 46147 bytes
-2026/06/09-09:49:23.149 e1c412 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/09-09:49:23.149 e1c412 Delete type=2 #267
-2026/06/09-09:49:23.149 e1c412 Delete type=2 #265
-2026/06/09-09:53:20.473 e1c414 Level-0 table #270: started
-2026/06/09-09:53:20.487 e1c414 Level-0 table #270: 1644755 bytes OK
-2026/06/09-09:53:20.489 e1c414 Delete type=0 #266
-2026/06/09-09:53:40.367 e1c412 Compacting 1@1 + 1@2 files
-2026/06/09-09:53:40.378 e1c412 Generated table #271@1: 804 keys, 43742 bytes
-2026/06/09-09:53:40.378 e1c412 Compacted 1@1 + 1@2 files => 43742 bytes
-2026/06/09-09:53:40.379 e1c412 compacted to: files[ 0 0 1 0 0 0 0 ]
-2026/06/09-09:53:40.379 e1c412 Delete type=2 #270
-2026/06/09-09:53:40.379 e1c412 Delete type=2 #268
-2026/06/09-09:59:40.385 e1c412 Level-0 table #273: started
-2026/06/09-09:59:40.395 e1c412 Level-0 table #273: 1642991 bytes OK
-2026/06/09-09:59:40.397 e1c412 Delete type=0 #269
+2026/07/01-09:12:44.745 374eb6 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/MANIFEST-000001
+2026/07/01-09:12:44.746 374eb6 Recovering log #713
+2026/07/01-09:12:44.753 374eb6 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/telegram_session/Default/IndexedDB/https_web.telegram.org_0.indexeddb.leveldb/000713.log 
+2026/07/01-09:14:09.942 374eac Level-0 table #718: started
+2026/07/01-09:14:09.959 374eac Level-0 table #718: 1610630 bytes OK
+2026/07/01-09:14:09.961 374eac Delete type=0 #713
+2026/07/01-09:14:24.826 374eac Compacting 1@1 + 1@2 files
+2026/07/01-09:14:24.833 374eac Generated table #719@1: 813 keys, 42056 bytes
+2026/07/01-09:14:24.833 374eac Compacted 1@1 + 1@2 files => 42056 bytes
+2026/07/01-09:14:24.835 374eac compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/07/01-09:14:24.835 374eac Delete type=2 #715
+2026/07/01-09:14:24.835 374eac Delete type=2 #718
+2026/07/01-09:19:23.348 374eb6 Level-0 table #721: started
+2026/07/01-09:19:23.363 374eb6 Level-0 table #721: 1622232 bytes OK
+2026/07/01-09:19:23.364 374eb6 Delete type=0 #717
+2026/07/01-09:19:47.605 374eb6 Compacting 1@1 + 1@2 files
+2026/07/01-09:19:47.612 374eb6 Generated table #722@1: 813 keys, 46194 bytes
+2026/07/01-09:19:47.613 374eb6 Compacted 1@1 + 1@2 files => 46194 bytes
+2026/07/01-09:19:47.614 374eb6 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/07/01-09:19:47.614 374eb6 Delete type=2 #719
+2026/07/01-09:19:47.614 374eb6 Delete type=2 #721
+2026/07/01-09:24:09.129 374eac Level-0 table #724: started
+2026/07/01-09:24:09.144 374eac Level-0 table #724: 1623727 bytes OK
+2026/07/01-09:24:09.146 374eac Delete type=0 #720

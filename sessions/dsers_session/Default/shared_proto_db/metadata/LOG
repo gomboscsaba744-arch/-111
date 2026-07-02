@@ -1,2 +1,3 @@
-2026/06/08-16:13:56.392 cf0e1f Creating DB /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/shared_proto_db/metadata since it was missing.
-2026/06/08-16:13:56.399 cf0e1f Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/shared_proto_db/metadata/MANIFEST-000001
+2026/07/02-10:43:27.882 425c20 Reusing MANIFEST /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/shared_proto_db/metadata/MANIFEST-000001
+2026/07/02-10:43:27.883 425c20 Recovering log #3
+2026/07/02-10:43:27.883 425c20 Reusing old log /Users/a171325./Documents/Global_Order_Pipeline/sessions/dsers_session/Default/shared_proto_db/metadata/000003.log 
