@@ -633,7 +633,11 @@ else:
             st.markdown("<br><b>马帮引擎检索参数：</b>", unsafe_allow_html=True)
             c1, c2 = st.columns(2)
             with c1:
-                days = st.number_input("提取天数范围", min_value=1, max_value=30, value=1)
+                col_d, col_h = st.columns(2)
+                with col_d:
+                    days = st.number_input("提取天数 (天)", min_value=0, max_value=30, value=1)
+                with col_h:
+                    hours = st.number_input("精确小时 (时)", min_value=0, max_value=23, value=0)
             with c2:
                 if st.session_state.route == "A":
                     search_val = st.text_input("目标客户 ID (精准提取)", value="1000000257")
@@ -832,7 +836,7 @@ else:
                 try:
                     export_script = "automators/mabang_export_bot.py" if st.session_state.route == "A" else "automators/mabang_dsers_export.py"
                     flag = "--customer_id" if st.session_state.route == "A" else "--sku"
-                    cmd = ["python3", export_script, "--days", str(days), flag, search_val]
+                    cmd = ["python3", export_script, "--days", str(days), "--hours", str(hours), flag, search_val]
                     result = subprocess.run(cmd, capture_output=True, text=True)
                     if result.returncode == 0:
                         log_container.success(f"✅ [阶段 1] 数据源萃取圆满成功！")

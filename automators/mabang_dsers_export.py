@@ -10,7 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from automators.excel_utils import save_df_to_excel
 from config import DSERS_TEMPLATE
 
-async def run_mabang_export(user_data_dir: str, days: int = 1, sku_val: str = 'code', headless: bool = False, progress_callback=None):
+async def run_mabang_export(user_data_dir: str, days: int = 1, hours: int = 0, sku_val: str = 'code', headless: bool = False, progress_callback=None):
     def log(msg):
         print(msg)
         if progress_callback:
@@ -91,7 +91,7 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, sku_val: str = 'c
                 from datetime import datetime, timedelta
                 now_dt = datetime.now()
                 now_str = now_dt.strftime("%Y-%m-%d %H:%M:%S")
-                start_dt_str = (now_dt - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+                start_dt_str = (now_dt - timedelta(days=days, hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
                 
                 await page.evaluate(f"""() => {{
                     // 1. 设置创建时间
@@ -440,6 +440,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--days", type=int, default=1)
+    parser.add_argument("--hours", type=int, default=0)
     parser.add_argument("--sku", default="code")
     args = parser.parse_args()
 
@@ -447,6 +448,7 @@ if __name__ == "__main__":
     asyncio.run(run_mabang_export(
         user_data_dir=SESSION_DIR, 
         days=args.days, 
+        hours=args.hours, 
         sku_val=args.sku, 
         headless=False
     ))
