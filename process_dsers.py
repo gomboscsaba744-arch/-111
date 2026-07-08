@@ -12,7 +12,7 @@ if '客户账号' in df.columns:
     mask1 = df['客户账号'] != ''
     mask2 = df['客户账号'] != '1000000257'
     mask3 = df['客户账号'] != '1000001876'
-    mask4 = ~df['客户账号'].isin([f'10000000{i:02d}' for i in range(1, 11)])
+    mask4 = ~df['客户账号'].isin(['1000001900'] + [f'10000000{i:02d}' for i in range(1, 11)])
     mask5 = df['客户账号'].str.isdigit()
     df = df[mask1 & mask2 & mask3 & mask4 & mask5]
 
