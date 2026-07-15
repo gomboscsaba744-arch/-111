@@ -79,6 +79,7 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
         row = 2
         while True:
             order_id = ws.cell(row=row, column=1).value  # A列：搜索单号
+            new_cpf = ws.cell(row=row, column=3).value   # C列：CPF (abnnumber)
             new_name = ws.cell(row=row, column=5).value  # E列：新名字
             
             if not order_id:
@@ -93,8 +94,11 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                 
             order_id = str(order_id).strip()
             new_name = str(new_name).strip() if new_name else ""
+            new_cpf = str(new_cpf).strip() if new_cpf and str(new_cpf).strip() != "nan" else ""
+            if new_cpf.endswith(".0"):
+                new_cpf = new_cpf[:-2]
             
-            print(f"\n[{row}] 开始处理单号: {order_id} -> 计划修改为: '{new_name}'")
+            print(f"\n[{row}] 开始处理单号: {order_id} -> 计划修改名字为: '{new_name}', CPF为: '{new_cpf}'")
             
             # --- 步骤 3.1: 搜索 ---
             try:
@@ -231,108 +235,116 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                 row += 1
                 continue
                 
-            # --- 步骤 3.4: 修改 Contact Name ---
+            # --- 步骤 3.4: 修改 Contact Name 与 CPF ---
             try:
-                target_found = await page.evaluate('''() => {
+                await page.evaluate('''() => {
                     let dialogs = Array.from(document.querySelectorAll('.ant-drawer-content, .ant-modal-content, [role="dialog"]')).filter(el => {
                         let rect = el.getBoundingClientRect();
                         return rect.width > 0 && rect.height > 0;
                     });
                     let container = dialogs.length > 0 ? dialogs[dialogs.length - 1] : document.body;
-                    
                     let inps = Array.from(container.querySelectorAll('input[type="text"], input:not([type])'));
-                    let target = null;
                     
-                    for (let i = 0; i < inps.length; i++) {
-                        let inp = inps[i];
+                    for (let inp of inps) {
                         let rect = inp.getBoundingClientRect();
-                        if (rect.width > 0 && rect.height > 0) {
-                            let parent = inp.parentElement;
-                            let textContext = "";
-                            let depth = 0;
-                            while (parent && parent !== container && depth < 6) {
-                                textContext += " " + parent.innerText;
-                                parent = parent.parentElement;
-                                depth++;
+                        if (rect.width > 0 && rect.height > 0 && !inp.className.includes('search')) {
+                            let formItem = inp.closest('.ant-form-item, .ant-row, div[class*="form"], div[class*="item"]');
+                            let textContext = formItem ? formItem.innerText : "";
+                            if (!textContext) {
+                                let p = inp.parentElement;
+                                let depth = 0;
+                                while (p && p !== container && depth < 6) {
+                                    textContext += " " + p.innerText;
+                                    p = p.parentElement;
+                                    depth++;
+                                }
                             }
-                            if (textContext.includes("Contact Name") || textContext.includes("Name")) {
-                                target = inp;
-                                break;
+                            
+                            if (!inp.getAttribute('data-target-input-name') && (textContext.includes("Contact Name") || textContext.includes("Name"))) {
+                                inp.setAttribute('data-target-input-name', 'true');
                             }
-                        }
-                    }
-                    
-                    if (!target) {
-                        for (let i = 0; i < inps.length; i++) {
-                            let inp = inps[i];
-                            let rect = inp.getBoundingClientRect();
-                            if (rect.width > 0 && rect.height > 0 && inp.value && !inp.className.includes('search')) {
-                                target = inp;
-                                break;
+                            if (!inp.getAttribute('data-target-input-cpf') && (textContext.includes("Cpf") || textContext.includes("CPF") || textContext.includes("CNPJ") || textContext.includes("Tax ID") || textContext.includes("ID Number"))) {
+                                inp.setAttribute('data-target-input-cpf', 'true');
                             }
                         }
                     }
-                    
-                    if (target) {
-                        target.setAttribute('data-target-input', 'true');
-                        return target.value;
-                    }
-                    return null;
                 }''')
                 
-                if target_found is not None:
-                    current_name = target_found
+                name_input = page.locator('input[data-target-input-name="true"]').first
+                cpf_input = page.locator('input[data-target-input-cpf="true"]').first
+                
+                modified_any = False
+                name_found = False
+                
+                if await name_input.count() > 0:
+                    name_found = True
+                    current_name = await name_input.input_value()
                     print(f"  -> 提取当前名字: '{current_name}'")
-                    
-                    target_input = page.locator('input[data-target-input="true"]')
-                    
-                    if current_name == new_name:
-                        print("  -> 新旧名字一致，无需修改。")
-                        ws.cell(row=row, column=6, value="成功(未修改)")
-                    else:
-                        print(f"  -> 执行修改: '{current_name}' -> '{new_name}'")
-                        
-                        await target_input.fill("")
-                        await target_input.fill(new_name)
-                        
-                        # --- 步骤 3.5: 保存 ---
-                        save_btn = page.locator("button:has-text('Save'), .ant-btn-primary:has-text('Save')").last
-                        if await save_btn.is_visible():
-                            if await save_btn.is_enabled():
-                                await save_btn.click()
-                                print("  -> 已点击 Save 按钮。")
-                            else:
-                                print("  [!] Save 按钮依然是灰色，尝试点击空白处让输入框失焦...")
-                                await page.mouse.click(0, 0)
-                                await page.wait_for_timeout(500)
-                                if await save_btn.is_enabled():
-                                    await save_btn.click()
-                                    print("  -> 失焦后点击 Save 按钮。")
-                        else:
-                            print("  [!] 找不到可见的 Save 按钮！")
-                            
-                        # 修复: 取消未完成的任务防止 Timeout 崩溃
-                        try:
-                            save_wait_task1 = asyncio.create_task(page.wait_for_selector(".ant-message-notice-content", state="visible", timeout=4000))
-                            save_wait_task2 = asyncio.create_task(page.wait_for_selector(".ant-drawer-content, .ant-modal-content", state="hidden", timeout=4000))
-                            done, pending = await asyncio.wait([save_wait_task1, save_wait_task2], return_when=asyncio.FIRST_COMPLETED)
-                            for task in pending:
-                                task.cancel()
-                        except Exception:
-                            await asyncio.sleep(1)
-                            
-                        ws.cell(row=row, column=6, value="成功")
-                        
-                        try:
-                            await target_input.evaluate("el => el.removeAttribute('data-target-input')")
-                        except Exception:
-                            pass
+                    if current_name != new_name and new_name != "":
+                        print(f"  -> 执行修改名字: '{current_name}' -> '{new_name}'")
+                        await name_input.fill("")
+                        await name_input.fill(new_name)
+                        modified_any = True
                 else:
                     print("  [!] 在弹窗中找不到 Contact Name 输入框！")
+                    
+                if await cpf_input.count() > 0 and new_cpf != "" and new_cpf != "nan":
+                    current_cpf = await cpf_input.input_value()
+                    print(f"  -> 提取当前 CPF: '{current_cpf}'")
+                    # 去除格式符号后比对或直接字符串比对
+                    if current_cpf.strip() != new_cpf:
+                        print(f"  -> 执行修改 CPF: '{current_cpf}' -> '{new_cpf}'")
+                        await cpf_input.fill("")
+                        await cpf_input.fill(new_cpf)
+                        modified_any = True
+                elif new_cpf != "" and new_cpf != "nan":
+                    print("  [!] 在弹窗中找不到 Cpf 输入框！")
+                
+                if not name_found:
                     ws.cell(row=row, column=6, value="找不到输入框")
+                elif not modified_any:
+                    print("  -> 名字与 CPF 均已匹配或无修改，无需重复保存。")
+                    ws.cell(row=row, column=6, value="成功(未修改)")
+                else:
+                    # --- 步骤 3.5: 保存 ---
+                    save_btn = page.locator("button:has-text('Save'), .ant-btn-primary:has-text('Save')").last
+                    if await save_btn.is_visible():
+                        if await save_btn.is_enabled():
+                            await save_btn.click()
+                            print("  -> 已点击 Save 按钮。")
+                        else:
+                            print("  [!] Save 按钮依然是灰色，尝试点击空白处让输入框失焦...")
+                            await page.mouse.click(0, 0)
+                            await page.wait_for_timeout(500)
+                            if await save_btn.is_enabled():
+                                await save_btn.click()
+                                print("  -> 失焦后点击 Save 按钮。")
+                    else:
+                        print("  [!] 找不到可见的 Save 按钮！")
+                        
+                    try:
+                        save_wait_task1 = asyncio.create_task(page.wait_for_selector(".ant-message-notice-content", state="visible", timeout=4000))
+                        save_wait_task2 = asyncio.create_task(page.wait_for_selector(".ant-drawer-content, .ant-modal-content", state="hidden", timeout=4000))
+                        done, pending = await asyncio.wait([save_wait_task1, save_wait_task2], return_when=asyncio.FIRST_COMPLETED)
+                        for task in pending:
+                            task.cancel()
+                    except Exception:
+                        await asyncio.sleep(1)
+                        
+                    ws.cell(row=row, column=6, value="成功")
+                
+                try:
+                    await page.evaluate('''() => {
+                        document.querySelectorAll('[data-target-input-name], [data-target-input-cpf]').forEach(el => {
+                            el.removeAttribute('data-target-input-name');
+                            el.removeAttribute('data-target-input-cpf');
+                        });
+                    }''')
+                except Exception:
+                    pass
 
             except Exception as e:
-                 print(f"  [!] 修改名字过程出错: {e}")
+                 print(f"  [!] 修改过程出错: {e}")
                  ws.cell(row=row, column=6, value="修改出错")
                  
             try:
