@@ -3,8 +3,9 @@ import pandas as pd
 import asyncio
 import os
 import subprocess
+import glob
 
-from config import MODE1_EXCEL, MODE2_EXCEL, MODE3_EXCEL, MODE4_EXCEL, TELEGRAM_SESSION_DIR, DATA_DIR, DSERS_SESSION_DIR, DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV, SCRIPT_TEMPLATE, ORDER_TEMPLATE
+from config import MODE1_EXCEL, MODE2_EXCEL, MODE3_EXCEL, MODE4_EXCEL, TELEGRAM_SESSION_DIR, DATA_DIR, DSERS_SESSION_DIR, DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV, SCRIPT_TEMPLATE, ORDER_TEMPLATE, SESSIONS_DIR
 from automators.telegram_cpf_bot import run_cpf_query
 from automators.dsers_update_bot import run_dsers_rename
 from automators.order_template_utils import clean_order_template_to_script, sync_cpf_results_to_order_template
@@ -809,10 +810,14 @@ else:
         btn_kill = st.button("🛑 紧急复位 (KILL PROCESSES)")
         
     if btn_kill:
-        st.warning("⚠️ 正在强制终止所有后台自动化残余进程...")
-        os.system("pkill -f playwright")
-        os.system("pkill -f chrome")
-        st.success("✅ 僵尸进程已清零，您可以安全地重新启动流水线！")
+        st.warning("⚠️ 正在强制终止所有后台自动化残余进程并清理锁定文件...")
+        os.system("pkill -i -f playwright")
+        os.system("pkill -i -f 'remote-debugging-pipe'")
+        os.system("pkill -i -f 'user-data-dir.*sessions'")
+        for lock_file in glob.glob(os.path.join(SESSIONS_DIR, "*", "Singleton*")):
+            try: os.remove(lock_file)
+            except: pass
+        st.success("✅ 僵尸进程及会话锁已清零，您可以安全地重新启动流水线！")
         st.stop()
 
     if btn_launch:
@@ -823,6 +828,10 @@ else:
                 st.error("❌ 引擎无法启动：请先上传本地表格燃料！")
         else:
             log_container = st.empty()
+            # --- 启动前自动清洗残余的浏览器单例锁文件，防止 "正在现有的浏览器会话中打开" 报错 ---
+            for lock_file in glob.glob(os.path.join(SESSIONS_DIR, "*", "Singleton*")):
+                try: os.remove(lock_file)
+                except: pass
             
             # --- 新增：下单模板的运行前置清洗与映射 ---
             if st.session_state.get("active_template_type") == "下单模板.xlsx":

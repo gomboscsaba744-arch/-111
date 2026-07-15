@@ -459,7 +459,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                     attempts += 1
                     continue
                 
-                if "não encontrado" in text_lower or "nao encontrado" in text_lower or "inválido" in text_lower or "invalido" in text_lower:
+                if "não encontrado" in text_lower or "nao encontrado" in text_lower or "inválido" in text_lower or "invalido" in text_lower or "utilize o comando" in text_lower or "seguido dos" in text_lower or "dígitos do cpf" in text_lower:
                     break
 
                 if "nome" in text_lower:
@@ -689,7 +689,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                             ws.cell(row=r_idx, column=5, value="")
                         else:
                             ws.cell(row=r_idx, column=5, value="提取失败")
-                elif "não encontrado" in text_lower or "nao encontrado" in text_lower or "inválido" in text_lower or "invalido" in text_lower:
+                elif "não encontrado" in text_lower or "nao encontrado" in text_lower or "inválido" in text_lower or "invalido" in text_lower or "utilize o comando" in text_lower or "seguido dos" in text_lower or "dígitos do cpf" in text_lower:
                     print(f"    -> CPF 未找到或无效，跳过此号码。")
                     ws.cell(row=r_idx, column=5, value="无")
                 else:
