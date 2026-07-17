@@ -584,25 +584,55 @@ else:
             transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         
-        /* 底部超级启动按钮 - Apple-like Primary Button */
-        .launch-btn-container [data-testid="stButton"] button {
-            background: #1d1d1f !important;
-            color: #ffffff !important;
-            border: none !important;
-            border-radius: 18px !important;
-            padding: 1.2rem 2rem !important;
-            font-size: 1.2rem !important;
-            font-weight: 600 !important;
+        /* ====================
+           底部控制按钮 Ethereal Glassmorphism (主页同款高级半透玻璃质感)
+           ==================== */
+        .launch-btn-container button,
+        .launch-btn-container [data-testid="stButton"] > button,
+        .launch-btn-container [data-testid="baseButton-primary"],
+        .launch-btn-container [data-testid="baseButton-secondary"] {
+            border-radius: 9999px !important;
+            padding: 1.1rem 2.2rem !important;
+            font-size: 1.15rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.04em !important;
             width: 100% !important;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            animation-delay: 0.3s;
-            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            animation-delay: 0.2s !important;
+            backdrop-filter: blur(40px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
+            cursor: pointer !important;
         }
-        .launch-btn-container [data-testid="stButton"] button:hover {
-            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.4) !important;
-            filter: hue-rotate(15deg) brightness(1.1);
+
+        /* 启动处理按钮 (Primary Crystal Glass) */
+        .launch-btn-container [data-testid="baseButton-primary"],
+        .launch-btn-container [data-testid="stButton"] > button:first-child {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+            color: #1d1d1f !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.9) !important;
+        }
+
+        /* 强制停止按钮 (Secondary Frosted Glass) */
+        .launch-btn-container [data-testid="baseButton-secondary"] {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
+            color: #444444 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+        }
+
+        /* 统一悬浮反馈 (Kinetic Hover Physics) */
+        .launch-btn-container button:hover {
+            transform: translateY(-4px) scale(1.01) !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
+            border-color: rgba(255, 255, 255, 1) !important;
+            color: #000000 !important;
+            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 1) !important;
+        }
+
+        .launch-btn-container button:active {
+            transform: translateY(0px) scale(0.98) !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -691,13 +721,20 @@ else:
     else:
         with st.container(border=True):
             st.markdown("### 第二步：选择要执行的步骤")
-            sw_dsers_clean = st.toggle("把马帮表格清理并转换成 DSERS 要求的数据格式", value=True, key="sw_dsers_clean_key", on_change=on_dsers_normal_change)
-            sw_dsers_cpf_check = st.toggle("自动连接 Telegram 查询并核对买家 CPF 真实姓名", value=True, key="sw_dsers_cpf_check_key", on_change=on_dsers_normal_change)
-            sw_dsers_cpf_merge = st.toggle("把 CPF 查询核准后的正确姓名填入 DSERS 表格中", value=True, key="sw_dsers_cpf_merge_key", on_change=on_dsers_normal_change)
-            sw_dsers_mabang = st.toggle("把 CPF 查询核准完成的姓名同步更新回马帮 ERP", value=True, key="sw_dsers_mabang_key", on_change=on_dsers_normal_change)
-            sw_dsers_import = st.toggle("一键把整理好的表格上传到 DSERS 后台并批量建单", value=True, key="sw_dsers_import_key", on_change=on_dsers_normal_change)
+            if "sw_dsers_clean_key" not in st.session_state: st.session_state["sw_dsers_clean_key"] = True
+            if "sw_dsers_cpf_check_key" not in st.session_state: st.session_state["sw_dsers_cpf_check_key"] = True
+            if "sw_dsers_cpf_merge_key" not in st.session_state: st.session_state["sw_dsers_cpf_merge_key"] = True
+            if "sw_dsers_mabang_key" not in st.session_state: st.session_state["sw_dsers_mabang_key"] = True
+            if "sw_dsers_import_key" not in st.session_state: st.session_state["sw_dsers_import_key"] = True
+            if "sw_dsers_rename_key" not in st.session_state: st.session_state["sw_dsers_rename_key"] = False
+
+            sw_dsers_clean = st.toggle("把马帮表格清理并转换成 DSERS 要求的数据格式", key="sw_dsers_clean_key", on_change=on_dsers_normal_change)
+            sw_dsers_cpf_check = st.toggle("自动连接 Telegram 查询并核对买家 CPF 真实姓名", key="sw_dsers_cpf_check_key", on_change=on_dsers_normal_change)
+            sw_dsers_cpf_merge = st.toggle("把 CPF 查询核准后的正确姓名填入 DSERS 表格中", key="sw_dsers_cpf_merge_key", on_change=on_dsers_normal_change)
+            sw_dsers_mabang = st.toggle("把 CPF 查询核准完成的姓名同步更新回马帮 ERP", key="sw_dsers_mabang_key", on_change=on_dsers_normal_change)
+            sw_dsers_import = st.toggle("一键把整理好的表格上传到 DSERS 后台并批量建单", key="sw_dsers_import_key", on_change=on_dsers_normal_change)
             st.markdown("---")
-            sw_dsers_rename = st.toggle("直接打开 DSERS 网页端，针对后台已有订单自动修改买家姓名", value=False, key="sw_dsers_rename_key", on_change=on_dsers_rename_change)
+            sw_dsers_rename = st.toggle("直接打开 DSERS 网页端，针对后台已有订单自动修改买家姓名", key="sw_dsers_rename_key", on_change=on_dsers_rename_change)
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
@@ -805,9 +842,9 @@ else:
     st.markdown('<div class="launch-btn-container">', unsafe_allow_html=True)
     c_btn1, c_btn2 = st.columns(2)
     with c_btn1:
-        btn_launch = st.button("立即开始处理")
+        btn_launch = st.button("立即开始处理", type="primary", use_container_width=True)
     with c_btn2:
-        btn_kill = st.button("强制停止并清理卡死进程")
+        btn_kill = st.button("强制停止并清理卡死进程", type="secondary", use_container_width=True)
         
     if btn_kill:
         st.warning("正在停止所有后台程序并清理缓存锁...")
