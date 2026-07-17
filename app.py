@@ -587,14 +587,13 @@ else:
         }
         
         /* ====================
-           底部控制按钮 Ethereal Glassmorphism (主页同款高级水晶半透玻璃质感)
-           解决 Streamlit DOM 自动闭合，采用容器兄弟节点及全局属性直接命中
+           底部控制按钮 Ethereal Glassmorphism (全面强力覆盖 Streamlit 任何原生黑底/红底/白底样式)
            ==================== */
-        .launch-btn-container button,
-        div.element-container:has(.launch-btn-container) + div.element-container button,
-        div.element-container:has(.launch-btn-container) ~ div.element-container button,
-        div[data-testid="stColumns"] button[data-testid="baseButton-primary"],
-        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"] {
+        div[data-testid="stColumns"] button,
+        div[data-testid="stButton"] > button[kind*="primary"],
+        div[data-testid="stButton"] > button[kind*="secondary"],
+        div[data-testid="stColumn"]:nth-child(1) div[data-testid="stButton"] > button,
+        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] > button {
             border-radius: 9999px !important;
             padding: 1.15rem 2.4rem !important;
             font-size: 1.18rem !important;
@@ -609,38 +608,39 @@ else:
             cursor: pointer !important;
         }
 
-        /* 启动处理按钮 (Primary Crystal Glass - 主页卡片同款高亮高通透磨砂水晶) */
-        div.element-container:has(.launch-btn-container) + div.element-container div[data-testid="stColumn"]:first-child button,
-        div[data-testid="stColumns"] button[data-testid="baseButton-primary"] {
+        /* 启动处理按钮 (Primary Crystal Glass - 彻底覆盖黑/红色原背景，主页卡片同款高透磨砂水晶) */
+        div[data-testid="stButton"] > button[kind*="primary"],
+        div[data-testid="stColumn"]:nth-child(1) div[data-testid="stButton"] > button {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.20) 100%) !important;
+            background-color: transparent !important;
             border: 1px solid rgba(255, 255, 255, 0.9) !important;
             color: #1d1d1f !important;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.9) !important;
         }
 
-        /* 强制停止按钮 (Secondary Frosted Glass - 协调通透灰底水晶磨砂) */
-        div.element-container:has(.launch-btn-container) + div.element-container div[data-testid="stColumn"]:last-child button,
-        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"] {
+        /* 强制停止按钮 (Secondary Frosted Glass - 彻底覆盖白底，协调通透灰底水晶磨砂) */
+        div[data-testid="stButton"] > button[kind*="secondary"],
+        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] > button {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.10) 100%) !important;
+            background-color: transparent !important;
             border: 1px solid rgba(255, 255, 255, 0.6) !important;
             color: #333333 !important;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
         }
 
         /* 统一悬浮物理光感 (Kinetic Hover Physics) */
-        div.element-container:has(.launch-btn-container) + div.element-container button:hover,
-        div[data-testid="stColumns"] button[data-testid="baseButton-primary"]:hover,
-        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"]:hover {
+        div[data-testid="stColumns"] button:hover,
+        div[data-testid="stButton"] > button:hover {
             transform: translateY(-4px) scale(1.01) !important;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
-            border-color: rgba(255, 255, 255, 1) !important;
+            background-color: transparent !important;
+            border: 1px solid rgba(255, 255, 255, 1) !important;
             color: #000000 !important;
             box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 1) !important;
         }
 
-        div.element-container:has(.launch-btn-container) + div.element-container button:active,
-        div[data-testid="stColumns"] button[data-testid="baseButton-primary"]:active,
-        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"]:active {
+        div[data-testid="stColumns"] button:active,
+        div[data-testid="stButton"] > button:active {
             transform: translateY(0px) scale(0.98) !important;
         }
     </style>
