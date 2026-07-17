@@ -562,76 +562,85 @@ else:
     st.markdown("""
     <style>
         /* 返回主界面特定按钮伪装 */
-        .back-btn-container [data-testid="stButton"] button {
-            background: rgba(255,255,255,0.8) !important;
-            border: 1px solid rgba(0,0,0,0.05) !important;
+        .back-btn-container [data-testid="stButton"] button,
+        div.element-container:has(.back-btn-container) + div.element-container button,
+        div.element-container:has(.back-btn-container) ~ div.element-container button {
+            background: rgba(255, 255, 255, 0.45) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
             color: #1d1d1f !important;
-            border-radius: 12px !important;
-            padding: 0.5rem 1rem !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-            transition: all 0.3s ease !important;
+            border-radius: 9999px !important;
+            padding: 0.5rem 1.4rem !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.8) !important;
+            backdrop-filter: blur(40px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            font-weight: 600 !important;
             animation: liquidReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            font-weight: 500 !important;
         }
-        .back-btn-container [data-testid="stButton"] button:hover {
-            background: #ffffff !important;
-            transform: translateY(-1px) !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
+        div.element-container:has(.back-btn-container) + div.element-container button:hover {
+            background: rgba(255, 255, 255, 0.85) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 10px 24px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1) !important;
         }
-        .back-btn-container [data-testid="stButton"] button:active {
+        div.element-container:has(.back-btn-container) + div.element-container button:active {
             transform: scale(0.96) !important;
-            transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         
         /* ====================
-           底部控制按钮 Ethereal Glassmorphism (主页同款高级半透玻璃质感)
+           底部控制按钮 Ethereal Glassmorphism (主页同款高级水晶半透玻璃质感)
+           解决 Streamlit DOM 自动闭合，采用容器兄弟节点及全局属性直接命中
            ==================== */
         .launch-btn-container button,
-        .launch-btn-container [data-testid="stButton"] > button,
-        .launch-btn-container [data-testid="baseButton-primary"],
-        .launch-btn-container [data-testid="baseButton-secondary"] {
+        div.element-container:has(.launch-btn-container) + div.element-container button,
+        div.element-container:has(.launch-btn-container) ~ div.element-container button,
+        div[data-testid="stColumns"] button[data-testid="baseButton-primary"],
+        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"] {
             border-radius: 9999px !important;
-            padding: 1.1rem 2.2rem !important;
-            font-size: 1.15rem !important;
+            padding: 1.15rem 2.4rem !important;
+            font-size: 1.18rem !important;
             font-weight: 700 !important;
             letter-spacing: 0.04em !important;
             width: 100% !important;
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
             animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
             animation-delay: 0.2s !important;
-            backdrop-filter: blur(40px) saturate(140%) !important;
-            -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
+            backdrop-filter: blur(50px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(50px) saturate(140%) !important;
             cursor: pointer !important;
         }
 
-        /* 启动处理按钮 (Primary Crystal Glass) */
-        .launch-btn-container [data-testid="baseButton-primary"],
-        .launch-btn-container [data-testid="stButton"] > button:first-child {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        /* 启动处理按钮 (Primary Crystal Glass - 主页卡片同款高亮高通透磨砂水晶) */
+        div.element-container:has(.launch-btn-container) + div.element-container div[data-testid="stColumn"]:first-child button,
+        div[data-testid="stColumns"] button[data-testid="baseButton-primary"] {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.20) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.9) !important;
             color: #1d1d1f !important;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.9) !important;
         }
 
-        /* 强制停止按钮 (Secondary Frosted Glass) */
-        .launch-btn-container [data-testid="baseButton-secondary"] {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 0%, rgba(255, 255, 255, 0.05) 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.4) !important;
-            color: #444444 !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04), inset 0 1px 1px rgba(255, 255, 255, 0.5) !important;
+        /* 强制停止按钮 (Secondary Frosted Glass - 协调通透灰底水晶磨砂) */
+        div.element-container:has(.launch-btn-container) + div.element-container div[data-testid="stColumn"]:last-child button,
+        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"] {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.10) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.6) !important;
+            color: #333333 !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
         }
 
-        /* 统一悬浮反馈 (Kinetic Hover Physics) */
-        .launch-btn-container button:hover {
+        /* 统一悬浮物理光感 (Kinetic Hover Physics) */
+        div.element-container:has(.launch-btn-container) + div.element-container button:hover,
+        div[data-testid="stColumns"] button[data-testid="baseButton-primary"]:hover,
+        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"]:hover {
             transform: translateY(-4px) scale(1.01) !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%) !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
             border-color: rgba(255, 255, 255, 1) !important;
             color: #000000 !important;
             box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 1) !important;
         }
 
-        .launch-btn-container button:active {
+        div.element-container:has(.launch-btn-container) + div.element-container button:active,
+        div[data-testid="stColumns"] button[data-testid="baseButton-primary"]:active,
+        div[data-testid="stColumns"] button[data-testid="baseButton-secondary"]:active {
             transform: translateY(0px) scale(0.98) !important;
         }
     </style>
