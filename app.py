@@ -561,73 +561,139 @@ else:
     st.markdown("""
     <style>
         /* ====================
-           主页大卡片同款横向扩展形态 (Smooth 0.8s Cubic-Bezier Transition)
+           主页同款美学形态之精炼横向胶囊按钮 (Compact Ethereal Glass Island Buttons)
            ==================== */
-        .action-card-outer {
+        .compact-action-outer {
             height: auto !important;
-            min-height: 130px !important;
+            min-height: 64px !important;
+            padding: 0.3rem !important;
+            border-radius: 9999px !important;
             margin-bottom: 0.5rem !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.15) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.04), inset 0 1px 1px rgba(255,255,255,0.8) !important;
+            backdrop-filter: blur(40px) saturate(140%) !important;
+            -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            animation: liquidReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        .action-card-inner {
+        .compact-action-inner {
             height: auto !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            padding: 1.5rem 2.2rem !important;
-        }
-
-        .action-card-left {
+            border-radius: 9999px !important;
+            padding: 0.5rem 1.4rem !important;
             display: flex !important;
             align-items: center !important;
-            gap: 1.5rem !important;
+            justify-content: space-between !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
         }
 
-        .action-icon {
-            width: 64px !important;
-            height: 64px !important;
-            font-size: 1.9rem !important;
-            margin-bottom: 0 !important;
+        .compact-btn-left {
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.8rem !important;
+        }
+
+        .compact-btn-icon {
+            width: 38px !important;
+            height: 38px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.2) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.9) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 1.15rem !important;
             flex-shrink: 0 !important;
-        }
-
-        .secondary-icon {
-            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 100%) !important;
-            color: #333 !important;
-        }
-
-        .action-title {
-            font-size: 1.65rem !important;
-            margin-bottom: 0.3rem !important;
             color: #1d1d1f !important;
-            background: none !important;
-            -webkit-background-clip: border-box !important;
-            -webkit-text-fill-color: #1d1d1f !important;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.05) !important;
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
-        .action-desc {
-            font-size: 1.08rem !important;
-            line-height: 1.4 !important;
-            color: #444 !important;
-            font-weight: 600 !important;
+        .compact-btn-title {
+            font-size: 1.12rem !important;
+            font-weight: 700 !important;
+            color: #1d1d1f !important;
+            letter-spacing: 0.01em !important;
+            margin: 0 !important;
+            white-space: nowrap !important;
         }
 
-        .action-island {
-            margin-top: 0 !important;
+        .compact-island {
+            display: inline-flex !important;
+            align-items: center !important;
+            background: rgba(255, 255, 255, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.85) !important;
+            border-radius: 9999px !important;
+            padding: 0.35rem 0.35rem 0.35rem 1rem !important;
+            gap: 0.6rem !important;
             flex-shrink: 0 !important;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
         }
 
-        .secondary-action .premium-card-inner {
-            background: rgba(255, 255, 255, 0.02) !important;
+        .compact-island-text {
+            font-size: 0.85rem !important;
+            font-weight: 800 !important;
+            color: #222 !important;
+            letter-spacing: 0.05em !important;
+            text-transform: uppercase !important;
         }
 
-        /* 统一平滑 0.8s 物理联动，彻底消除卡顿与瞬间缩放 */
-        .action-card-outer:hover {
-            transform: translateY(-8px) scale(1.015) !important;
-            border: 1px solid rgba(255, 255, 255, 1) !important;
-            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%) !important;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5) !important;
+        .compact-island-circle {
+            width: 30px !important;
+            height: 30px !important;
+            border-radius: 50% !important;
+            background: #1d1d1f !important;
+            color: #ffffff !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.95rem !important;
+            font-weight: 700 !important;
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        /* 强制停止按钮次级通透灰底配置 */
+        .compact-secondary {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.6) !important;
+        }
+        .compact-secondary .compact-btn-icon {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0.1) 100%) !important;
+            color: #444 !important;
+        }
+
+        /* 统一平滑 0.5s 物理联动与高光响应 */
+        .compact-action-outer:hover {
+            transform: translateY(-4px) scale(1.015) !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
+            border-color: rgba(255, 255, 255, 1) !important;
+            box-shadow: 0 16px 32px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1) !important;
             cursor: pointer !important;
+        }
+
+        .compact-action-outer:hover .compact-btn-icon {
+            transform: scale(1.08) rotate(8deg) !important;
+            background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 100%) !important;
+        }
+
+        .compact-action-outer:hover .compact-island {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border-color: rgba(255, 255, 255, 1) !important;
+            transform: translateX(-2px) !important;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06) !important;
+        }
+
+        .compact-action-outer:hover .compact-island-circle {
+            transform: translateX(3px) scale(1.05) !important;
+            background: #000 !important;
+        }
+
+        .compact-action-outer:active {
+            transform: scale(0.98) !important;
         }
 
         /* 返回主页精美胶囊卡片 (与岛屿 CTA 同源的高透态) */
@@ -905,18 +971,15 @@ else:
     c_btn1, c_btn2 = st.columns(2)
     with c_btn1:
         st.markdown("""
-        <div class="premium-card-outer action-card-outer" id="visual-btn-launch">
-            <div class="premium-card-inner action-card-inner">
-                <div class="action-card-left">
-                    <div class="card-icon-wrapper action-icon">⚡</div>
-                    <div class="action-text-wrapper">
-                        <div class="card-title action-title">立即开始处理</div>
-                        <div class="card-desc action-desc">一键自动执行数据转换与上传流水线</div>
-                    </div>
+        <div class="compact-action-outer" id="visual-btn-launch">
+            <div class="compact-action-inner">
+                <div class="compact-btn-left">
+                    <div class="compact-btn-icon">⚡</div>
+                    <div class="compact-btn-title">立即开始处理</div>
                 </div>
-                <div class="island-btn action-island">
-                    <span class="island-btn-text">RUN PIPELINE</span>
-                    <span class="island-btn-icon">↗</span>
+                <div class="compact-island">
+                    <span class="compact-island-text">RUN PIPELINE</span>
+                    <span class="compact-island-circle">↗</span>
                 </div>
             </div>
         </div>
@@ -924,18 +987,15 @@ else:
         btn_launch = st.button("RELAY_BTN_LAUNCH", key="btn_launch_relay")
     with c_btn2:
         st.markdown("""
-        <div class="premium-card-outer action-card-outer secondary-action" id="visual-btn-kill">
-            <div class="premium-card-inner action-card-inner">
-                <div class="action-card-left">
-                    <div class="card-icon-wrapper action-icon secondary-icon">✕</div>
-                    <div class="action-text-wrapper">
-                        <div class="card-title action-title">强制停止并清理卡死进程</div>
-                        <div class="card-desc action-desc">终止所有后台死锁任务并安全清理临时锁</div>
-                    </div>
+        <div class="compact-action-outer compact-secondary" id="visual-btn-kill">
+            <div class="compact-action-inner">
+                <div class="compact-btn-left">
+                    <div class="compact-btn-icon">✕</div>
+                    <div class="compact-btn-title">强制停止并清理卡死进程</div>
                 </div>
-                <div class="island-btn action-island secondary-island">
-                    <span class="island-btn-text">TERMINATE</span>
-                    <span class="island-btn-icon">↺</span>
+                <div class="compact-island">
+                    <span class="compact-island-text">TERMINATE</span>
+                    <span class="compact-island-circle">↺</span>
                 </div>
             </div>
         </div>
