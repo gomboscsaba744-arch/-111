@@ -561,87 +561,124 @@ else:
     # ==========================
     st.markdown("""
     <style>
-        /* 返回主界面特定按钮伪装 */
-        .back-btn-container [data-testid="stButton"] button,
-        div.element-container:has(.back-btn-container) + div.element-container button,
-        div.element-container:has(.back-btn-container) ~ div.element-container button {
-            background: rgba(255, 255, 255, 0.45) !important;
-            border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        /* ====================
+           主页大卡片同款风格与联动动效 (Unified Ethereal Glass Cards & Kinetic Hover Physics)
+           ==================== */
+        .action-card-outer {
+            height: auto !important;
+            min-height: 130px;
+            margin-bottom: 0.5rem;
+            animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+        }
+
+        .action-card-inner {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 1.5rem 2.2rem !important;
+        }
+
+        .action-card-left {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .action-icon {
+            width: 64px !important;
+            height: 64px !important;
+            font-size: 1.9rem !important;
+            margin-bottom: 0 !important;
+            flex-shrink: 0;
+        }
+
+        .secondary-icon {
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.05) 100%) !important;
+            color: #333 !important;
+        }
+
+        .action-title {
+            font-size: 1.65rem !important;
+            margin-bottom: 0.3rem !important;
             color: #1d1d1f !important;
+        }
+
+        .action-desc {
+            font-size: 1.08rem !important;
+            line-height: 1.4 !important;
+            color: #444 !important;
+            font-weight: 600;
+        }
+
+        .action-island {
+            margin-top: 0 !important;
+            flex-shrink: 0;
+        }
+
+        .secondary-action .premium-card-inner {
+            background: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        /* 返回主页精美胶囊卡片 (与岛屿 CTA 同源的高透态) */
+        .back-card-outer {
+            height: auto !important;
+            padding: 0.35rem !important;
             border-radius: 9999px !important;
-            padding: 0.5rem 1.4rem !important;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03), inset 0 1px 1px rgba(255,255,255,0.8) !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.20) 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.85) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04), inset 0 1px 1px rgba(255,255,255,0.8) !important;
             backdrop-filter: blur(40px) saturate(140%) !important;
             -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
             transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            font-weight: 600 !important;
             animation: liquidReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
-        div.element-container:has(.back-btn-container) + div.element-container button:hover {
-            background: rgba(255, 255, 255, 0.85) !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 10px 24px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1) !important;
-        }
-        div.element-container:has(.back-btn-container) + div.element-container button:active {
-            transform: scale(0.96) !important;
-        }
-        
-        /* ====================
-           底部控制按钮 Ethereal Glassmorphism (全面强力覆盖 Streamlit 任何原生黑底/红底/白底样式)
-           ==================== */
-        div[data-testid="stColumns"] button,
-        div[data-testid="stButton"] > button[kind*="primary"],
-        div[data-testid="stButton"] > button[kind*="secondary"],
-        div[data-testid="stColumn"]:nth-child(1) div[data-testid="stButton"] > button,
-        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] > button {
+
+        .back-card-inner {
             border-radius: 9999px !important;
-            padding: 1.15rem 2.4rem !important;
-            font-size: 1.18rem !important;
-            font-weight: 700 !important;
-            letter-spacing: 0.04em !important;
-            width: 100% !important;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
-            animation-delay: 0.2s !important;
-            backdrop-filter: blur(50px) saturate(140%) !important;
-            -webkit-backdrop-filter: blur(50px) saturate(140%) !important;
+            padding: 0.45rem 1.4rem !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            height: auto !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .back-icon {
+            font-size: 1.2rem !important;
+            font-weight: 800;
+            color: #1d1d1f;
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .back-text {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #1d1d1f;
+            letter-spacing: 0.02em;
+        }
+
+        .back-card-outer:hover {
+            transform: translateY(-3px) scale(1.02) !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.50) 100%) !important;
+            border-color: rgba(255, 255, 255, 1) !important;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1) !important;
             cursor: pointer !important;
         }
 
-        /* 启动处理按钮 (Primary Crystal Glass - 彻底覆盖黑/红色原背景，主页卡片同款高透磨砂水晶) */
-        div[data-testid="stButton"] > button[kind*="primary"],
-        div[data-testid="stColumn"]:nth-child(1) div[data-testid="stButton"] > button {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.20) 100%) !important;
-            background-color: transparent !important;
-            border: 1px solid rgba(255, 255, 255, 0.9) !important;
-            color: #1d1d1f !important;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08), inset 0 1px 2px rgba(255, 255, 255, 0.9) !important;
+        .back-card-outer:hover .back-icon {
+            transform: translateX(-4px);
         }
 
-        /* 强制停止按钮 (Secondary Frosted Glass - 彻底覆盖白底，协调通透灰底水晶磨砂) */
-        div[data-testid="stButton"] > button[kind*="secondary"],
-        div[data-testid="stColumn"]:nth-child(2) div[data-testid="stButton"] > button {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.10) 100%) !important;
-            background-color: transparent !important;
-            border: 1px solid rgba(255, 255, 255, 0.6) !important;
-            color: #333333 !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
-        }
-
-        /* 统一悬浮物理光感 (Kinetic Hover Physics) */
-        div[data-testid="stColumns"] button:hover,
-        div[data-testid="stButton"] > button:hover {
-            transform: translateY(-4px) scale(1.01) !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
-            background-color: transparent !important;
-            border: 1px solid rgba(255, 255, 255, 1) !important;
-            color: #000000 !important;
-            box-shadow: 0 24px 48px rgba(0, 0, 0, 0.12), inset 0 1px 2px rgba(255, 255, 255, 1) !important;
-        }
-
-        div[data-testid="stColumns"] button:active,
-        div[data-testid="stButton"] > button:active {
-            transform: translateY(0px) scale(0.98) !important;
+        /* 统一屏蔽作为事件中继的 Streamlit 隐藏按钮，保证零干扰 */
+        div[data-testid="stButton"]:has(button:contains("RELAY_BTN")),
+        button:contains("RELAY_BTN") {
+            display: none !important;
+            position: absolute !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -652,11 +689,17 @@ else:
     with col1:
         st.markdown(f'<h1 style="margin-top:0;">{route_name}</h1>', unsafe_allow_html=True)
     with col2:
-        st.markdown('<div class="back-btn-container">', unsafe_allow_html=True)
-        if st.button("返回主页"):
+        st.markdown("""
+        <div class="back-card-outer" id="visual-btn-back">
+            <div class="back-card-inner">
+                <span class="back-icon">←</span>
+                <span class="back-text">返回主页</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("RELAY_BTN_BACK", key="btn_back_relay"):
             st.session_state.route = None
             st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
@@ -848,12 +891,100 @@ else:
 
     st.markdown("<div style='height: 2rem;'></div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="launch-btn-container">', unsafe_allow_html=True)
     c_btn1, c_btn2 = st.columns(2)
     with c_btn1:
-        btn_launch = st.button("立即开始处理", type="primary", use_container_width=True)
+        st.markdown("""
+        <div class="premium-card-outer action-card-outer" id="visual-btn-launch">
+            <div class="premium-card-inner action-card-inner">
+                <div class="action-card-left">
+                    <div class="card-icon-wrapper action-icon">⚡</div>
+                    <div class="action-text-wrapper">
+                        <div class="card-title action-title">立即开始处理</div>
+                        <div class="card-desc action-desc">一键自动执行数据转换与上传流水线</div>
+                    </div>
+                </div>
+                <div class="island-btn action-island">
+                    <span class="island-btn-text">RUN PIPELINE</span>
+                    <span class="island-btn-icon">↗</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        btn_launch = st.button("RELAY_BTN_LAUNCH", key="btn_launch_relay")
     with c_btn2:
-        btn_kill = st.button("强制停止并清理卡死进程", type="secondary", use_container_width=True)
+        st.markdown("""
+        <div class="premium-card-outer action-card-outer secondary-action" id="visual-btn-kill">
+            <div class="premium-card-inner action-card-inner">
+                <div class="action-card-left">
+                    <div class="card-icon-wrapper action-icon secondary-icon">✕</div>
+                    <div class="action-text-wrapper">
+                        <div class="card-title action-title">强制停止并清理卡死进程</div>
+                        <div class="card-desc action-desc">终止所有后台死锁任务并安全清理临时锁</div>
+                    </div>
+                </div>
+                <div class="island-btn action-island secondary-island">
+                    <span class="island-btn-text">TERMINATE</span>
+                    <span class="island-btn-icon">↺</span>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        btn_kill = st.button("RELAY_BTN_KILL", key="btn_kill_relay")
+
+    # ==========================
+    # 操作按钮 JS 物理透传引擎 (跨 iframe 精准中继点击，并深度隐藏原生 relay 按钮)
+    # ==========================
+    components.html("""
+    <script>
+        const parentDoc = window.parent.document;
+        let attempts = 0;
+        const bindRelays = setInterval(() => {
+            attempts++;
+            const backCard = parentDoc.getElementById('visual-btn-back');
+            const launchCard = parentDoc.getElementById('visual-btn-launch');
+            const killCard = parentDoc.getElementById('visual-btn-kill');
+            
+            // 全匹配隐藏并定位真正承载逻辑的原生 Relay Button
+            const findRelayBtn = (textTag) => {
+                const allBtns = parentDoc.querySelectorAll('button');
+                for (let btn of allBtns) {
+                    if (btn.textContent && btn.textContent.includes(textTag)) {
+                        let container = btn.closest('.element-container') || btn.closest('[data-testid="stButton"]') || btn;
+                        container.style.setProperty('display', 'none', 'important');
+                        container.style.setProperty('position', 'absolute', 'important');
+                        container.style.setProperty('opacity', '0', 'important');
+                        container.style.setProperty('height', '0', 'important');
+                        container.style.setProperty('pointer-events', 'none', 'important');
+                        return btn;
+                    }
+                }
+                return null;
+            };
+            
+            const btnBack = findRelayBtn('RELAY_BTN_BACK');
+            const btnLaunch = findRelayBtn('RELAY_BTN_LAUNCH');
+            const btnKill = findRelayBtn('RELAY_BTN_KILL');
+            
+            if (backCard && btnBack) {
+                backCard.style.cursor = 'pointer';
+                backCard.onclick = (e) => { e.preventDefault(); e.stopPropagation(); btnBack.click(); };
+            }
+            if (launchCard && btnLaunch) {
+                launchCard.style.cursor = 'pointer';
+                launchCard.onclick = (e) => { e.preventDefault(); e.stopPropagation(); btnLaunch.click(); };
+            }
+            if (killCard && btnKill) {
+                killCard.style.cursor = 'pointer';
+                killCard.onclick = (e) => { e.preventDefault(); e.stopPropagation(); btnKill.click(); };
+            }
+            
+            if (backCard && btnBack && launchCard && btnLaunch && killCard && btnKill) {
+                clearInterval(bindRelays);
+            }
+            if (attempts > 30) clearInterval(bindRelays);
+        }, 100);
+    </script>
+    """, height=0, width=0)
         
     if btn_kill:
         st.warning("正在停止所有后台程序并清理缓存锁...")
