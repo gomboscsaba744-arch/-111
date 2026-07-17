@@ -208,6 +208,173 @@ st.markdown("""
         padding-top: 4rem !important;
         max-width: 1200px !important;
     }
+
+    /* ====================
+       GLOBAL ULTRA-CLEAR ETHEREAL GLASS CARDS (全站通用近乎全透玻璃材质与 0.8s 丝滑联动)
+       ==================== */
+    .premium-card-outer {
+        padding: 0.5rem;
+        border-radius: 2.5rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.05);
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        position: relative;
+        overflow: hidden;
+        height: 460px;
+        will-change: transform;
+    }
+    
+    .premium-card-inner {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 2.125rem;
+        height: 100%;
+        padding: 2.6rem 2.8rem 2.4rem 2.8rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(50px) saturate(120%);
+        -webkit-backdrop-filter: blur(50px) saturate(120%);
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        position: relative;
+        z-index: 10;
+    }
+    
+    /* 径向网格渐变背景 */
+    .premium-card-outer::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.8), transparent 60%);
+        opacity: 0.2;
+        transition: opacity 0.8s ease;
+        z-index: 1;
+        pointer-events: none;
+    }
+    
+    /* Kinetic Hover Physics */
+    .premium-card-outer:hover {
+        transform: translateY(-12px) scale(1.02);
+        border: 1px solid rgba(255, 255, 255, 1);
+        background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%);
+        box-shadow: 0 40px 80px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5);
+        cursor: pointer;
+    }
+    
+    .premium-card-outer:hover .premium-card-inner {
+        background: rgba(255, 255, 255, 0.4);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
+    }
+    
+    .premium-card-outer:hover::before {
+        opacity: 1;
+    }
+    
+    .premium-card-outer:active {
+        transform: scale(0.97);
+        transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    /* Typography inside cards */
+    .card-icon-wrapper {
+        width: 72px;
+        height: 72px;
+        border-radius: 1.4rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.1) 100%);
+        border: 1px solid rgba(255, 255, 255, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.3rem;
+        margin-bottom: 1.2rem;
+        box-shadow: inset 0 2px 4px rgba(255,255,255,0.5), 0 10px 20px rgba(0,0,0,0.1);
+        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    
+    .card-title {
+        font-size: 3.4rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin-bottom: 0.8rem;
+        color: #1d1d1f !important;
+        background: linear-gradient(135deg, #000000 0%, #434345 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.1;
+    }
+    
+    .card-desc {
+        font-size: 1.3rem;
+        color: #333333 !important;
+        line-height: 1.65;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+    
+    /* Button-in-Button Architecture (Island CTA) */
+    .island-btn {
+        display: inline-flex !important;
+        align-items: center !important;
+        background: rgba(255, 255, 255, 0.5) !important;
+        border: 1px solid rgba(255, 255, 255, 0.8) !important;
+        border-radius: 9999px !important;
+        padding: 0.6rem 0.6rem 0.6rem 1.6rem !important;
+        margin-top: 1.4rem;
+        width: fit-content !important;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
+    }
+    
+    .island-btn-text {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #222222 !important;
+        margin-right: 1.8rem !important;
+        letter-spacing: 0.06em !important;
+        text-transform: uppercase !important;
+        transition: color 0.5s ease !important;
+    }
+    
+    .island-btn-icon {
+        width: 44px !important;
+        height: 44px !important;
+        border-radius: 50% !important;
+        background: #1d1d1f !important;
+        color: #ffffff !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 1.4rem !important;
+        font-weight: 600 !important;
+        transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    
+    /* 联动 Hover Physics */
+    .premium-card-outer:hover .card-icon-wrapper {
+        transform: scale(1.05) translateY(-4px) !important;
+        background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 100%) !important;
+    }
+    .premium-card-outer:hover .island-btn {
+        background: rgba(255, 255, 255, 0.85) !important;
+        border-color: rgba(255, 255, 255, 1) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.06) !important;
+    }
+    .premium-card-outer:hover .island-btn-text {
+        color: #000000 !important;
+    }
+    .premium-card-outer:hover .island-btn-icon {
+        transform: translateX(4px) scale(1.05) !important;
+        background: #000000 !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -275,174 +442,6 @@ if st.session_state.route is None:
             width: 0 !important;
             overflow: hidden !important;
             pointer-events: none !important;
-        }
-        
-        /* ====================
-           ULTRA-CLEAR ETHEREAL GLASS CARDS (近乎全透玻璃材质)
-           ==================== */
-        .premium-card-outer {
-            padding: 0.5rem;
-            border-radius: 2.5rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.02) 100%);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 30px 60px rgba(0,0,0,0.05);
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            overflow: hidden;
-            height: 460px;
-            will-change: transform;
-        }
-        
-        .premium-card-inner {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 2.125rem;
-            height: 100%;
-            padding: 2.6rem 2.8rem 2.4rem 2.8rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(50px) saturate(120%);
-            -webkit-backdrop-filter: blur(50px) saturate(120%);
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            z-index: 10;
-        }
-        
-        /* 径向网格渐变背景 */
-        .premium-card-outer::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.8), transparent 60%);
-            opacity: 0.2;
-            transition: opacity 0.8s ease;
-            z-index: 1;
-            pointer-events: none;
-        }
-        
-        /* Kinetic Hover Physics */
-        .premium-card-outer:hover {
-            transform: translateY(-12px) scale(1.02);
-            border: 1px solid rgba(255, 255, 255, 1);
-            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%);
-            box-shadow: 0 40px 80px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5);
-            cursor: pointer;
-        }
-        
-        .premium-card-outer:hover .premium-card-inner {
-            background: rgba(255, 255, 255, 0.4);
-            box-shadow: inset 0 1px 1px rgba(255, 255, 255, 1);
-        }
-        
-        .premium-card-outer:hover::before {
-            opacity: 1;
-        }
-        
-        /* Active Scale Simulation */
-        .premium-card-outer:active {
-            transform: scale(0.97);
-            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        /* Typography inside cards */
-        .card-icon-wrapper {
-            width: 72px;
-            height: 72px;
-            border-radius: 1.4rem;
-            background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.1) 100%);
-            border: 1px solid rgba(255, 255, 255, 1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.3rem;
-            margin-bottom: 1.2rem;
-            box-shadow: inset 0 2px 4px rgba(255,255,255,0.5), 0 10px 20px rgba(0,0,0,0.1);
-            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        .card-title {
-            font-size: 3.4rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin-bottom: 0.8rem;
-            color: #1d1d1f !important;
-            background: linear-gradient(135deg, #000000 0%, #434345 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            line-height: 1.1;
-        }
-        
-        .card-desc {
-            font-size: 1.3rem;
-            color: #333333 !important;
-            line-height: 1.65;
-            font-weight: 600;
-            letter-spacing: 0.01em;
-        }
-        
-        /* Button-in-Button Architecture (Island CTA) */
-        .island-btn {
-            display: inline-flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.5);
-            border: 1px solid rgba(255, 255, 255, 0.8);
-            border-radius: 9999px;
-            padding: 0.6rem 0.6rem 0.6rem 1.6rem;
-            margin-top: 1.4rem;
-            width: fit-content;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-        }
-        
-        .island-btn-text {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: #222222 !important;
-            margin-right: 1.8rem;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            transition: color 0.5s ease;
-        }
-        
-        .island-btn-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #1d1d1f;
-            color: #ffffff !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
-            font-weight: 600;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        
-        /* 联动 Hover Physics */
-        .premium-card-outer:hover .card-icon-wrapper {
-            transform: scale(1.05) translateY(-4px);
-            background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 100%);
-        }
-        .premium-card-outer:hover .island-btn {
-            background: rgba(255, 255, 255, 0.8);
-            border-color: rgba(255, 255, 255, 1);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.06);
-        }
-        .premium-card-outer:hover .island-btn-text {
-            color: #000000 !important;
-        }
-        .premium-card-outer:hover .island-btn-icon {
-            transform: translateX(4px) scale(1.05);
-            background: #000000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
     </style>
     
@@ -562,16 +561,16 @@ else:
     st.markdown("""
     <style>
         /* ====================
-           主页大卡片同款风格与联动动效 (Unified Ethereal Glass Cards & Kinetic Hover Physics)
+           主页大卡片同款横向扩展形态 (Smooth 0.8s Cubic-Bezier Transition)
            ==================== */
         .action-card-outer {
             height: auto !important;
-            min-height: 130px;
-            margin-bottom: 0.5rem;
-            animation: liquidReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            min-height: 130px !important;
+            margin-bottom: 0.5rem !important;
         }
 
         .action-card-inner {
+            height: auto !important;
             flex-direction: row !important;
             align-items: center !important;
             justify-content: space-between !important;
@@ -579,9 +578,9 @@ else:
         }
 
         .action-card-left {
-            display: flex;
-            align-items: center;
-            gap: 1.5rem;
+            display: flex !important;
+            align-items: center !important;
+            gap: 1.5rem !important;
         }
 
         .action-icon {
@@ -589,7 +588,7 @@ else:
             height: 64px !important;
             font-size: 1.9rem !important;
             margin-bottom: 0 !important;
-            flex-shrink: 0;
+            flex-shrink: 0 !important;
         }
 
         .secondary-icon {
@@ -601,22 +600,34 @@ else:
             font-size: 1.65rem !important;
             margin-bottom: 0.3rem !important;
             color: #1d1d1f !important;
+            background: none !important;
+            -webkit-background-clip: border-box !important;
+            -webkit-text-fill-color: #1d1d1f !important;
         }
 
         .action-desc {
             font-size: 1.08rem !important;
             line-height: 1.4 !important;
             color: #444 !important;
-            font-weight: 600;
+            font-weight: 600 !important;
         }
 
         .action-island {
             margin-top: 0 !important;
-            flex-shrink: 0;
+            flex-shrink: 0 !important;
         }
 
         .secondary-action .premium-card-inner {
             background: rgba(255, 255, 255, 0.02) !important;
+        }
+
+        /* 统一平滑 0.8s 物理联动，彻底消除卡顿与瞬间缩放 */
+        .action-card-outer:hover {
+            transform: translateY(-8px) scale(1.015) !important;
+            border: 1px solid rgba(255, 255, 255, 1) !important;
+            background: linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.1) 100%) !important;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1), 0 0 0 1px rgba(255,255,255,0.5) !important;
+            cursor: pointer !important;
         }
 
         /* 返回主页精美胶囊卡片 (与岛屿 CTA 同源的高透态) */
