@@ -561,7 +561,7 @@ else:
     st.markdown("""
     <style>
         /* ====================
-           主页同款美学形态之精炼横向胶囊按钮 (Compact Ethereal Glass Island Buttons)
+           主页同款美学形态之精炼横向胶囊按钮 (极其丝滑的 GPU 硬件加速光层与精准属性过渡)
            ==================== */
         .compact-action-outer {
             height: auto !important;
@@ -574,8 +574,23 @@ else:
             box-shadow: 0 4px 18px rgba(0,0,0,0.04), inset 0 1px 1px rgba(255,255,255,0.8) !important;
             backdrop-filter: blur(40px) saturate(140%) !important;
             -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            animation: liquidReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            position: relative;
+            overflow: hidden;
+            will-change: transform;
+        }
+
+        /* 硬件加速的 ::before 高透光变层，实现 100% 丝滑渐亮，杜绝渐变突变 */
+        .compact-action-outer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.40) 100%) !important;
+            opacity: 0;
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            z-index: 1;
+            pointer-events: none;
         }
 
         .compact-action-inner {
@@ -588,6 +603,8 @@ else:
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            position: relative;
+            z-index: 2;
         }
 
         .compact-btn-left {
@@ -609,7 +626,7 @@ else:
             flex-shrink: 0 !important;
             color: #1d1d1f !important;
             box-shadow: 0 3px 8px rgba(0,0,0,0.05) !important;
-            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
         .compact-btn-title {
@@ -630,7 +647,7 @@ else:
             padding: 0.35rem 0.35rem 0.35rem 1rem !important;
             gap: 0.6rem !important;
             flex-shrink: 0 !important;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.7s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.03) !important;
         }
 
@@ -653,10 +670,10 @@ else:
             justify-content: center !important;
             font-size: 0.95rem !important;
             font-weight: 700 !important;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.7s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
-        /* 强制停止按钮次级通透灰底配置 */
+        /* 强制停止按钮次级底色配置 */
         .compact-secondary {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0.08) 100%) !important;
             border: 1px solid rgba(255, 255, 255, 0.6) !important;
@@ -666,22 +683,26 @@ else:
             color: #444 !important;
         }
 
-        /* 统一平滑 0.5s 物理联动与高光响应 */
+        /* 统一极致丝滑 0.7s 联动态（靠 GPU 层 opacity 渐显，绝无跳色） */
         .compact-action-outer:hover {
             transform: translateY(-4px) scale(1.015) !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
             border-color: rgba(255, 255, 255, 1) !important;
             box-shadow: 0 16px 32px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1) !important;
             cursor: pointer !important;
         }
 
+        .compact-action-outer:hover::before {
+            opacity: 1 !important;
+        }
+
         .compact-action-outer:hover .compact-btn-icon {
             transform: scale(1.08) rotate(8deg) !important;
-            background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.4) 100%) !important;
+            border-color: rgba(255, 255, 255, 1) !important;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.1) !important;
         }
 
         .compact-action-outer:hover .compact-island {
-            background: rgba(255, 255, 255, 0.95) !important;
+            background-color: rgba(255, 255, 255, 0.95) !important;
             border-color: rgba(255, 255, 255, 1) !important;
             transform: translateX(-2px) !important;
             box-shadow: 0 6px 16px rgba(0,0,0,0.06) !important;
@@ -689,14 +710,16 @@ else:
 
         .compact-action-outer:hover .compact-island-circle {
             transform: translateX(3px) scale(1.05) !important;
-            background: #000 !important;
+            background-color: #000 !important;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
         }
 
         .compact-action-outer:active {
             transform: scale(0.98) !important;
+            transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
 
-        /* 返回主页精美胶囊卡片 (与岛屿 CTA 同源的高透态) */
+        /* 返回主页精美胶囊卡片 (同样挂载 GPU 丝滑光感层) */
         .back-card-outer {
             height: auto !important;
             padding: 0.35rem !important;
@@ -706,8 +729,22 @@ else:
             box-shadow: 0 4px 15px rgba(0,0,0,0.04), inset 0 1px 1px rgba(255,255,255,0.8) !important;
             backdrop-filter: blur(40px) saturate(140%) !important;
             -webkit-backdrop-filter: blur(40px) saturate(140%) !important;
-            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            animation: liquidReveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.7s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            position: relative;
+            overflow: hidden;
+            will-change: transform;
+        }
+
+        .back-card-outer::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px !important;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.45) 100%) !important;
+            opacity: 0;
+            transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            z-index: 1;
+            pointer-events: none;
         }
 
         .back-card-inner {
@@ -721,13 +758,15 @@ else:
             background: transparent !important;
             border: none !important;
             box-shadow: none !important;
+            position: relative;
+            z-index: 2;
         }
 
         .back-icon {
             font-size: 1.2rem !important;
             font-weight: 800;
             color: #1d1d1f;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) !important;
         }
 
         .back-text {
@@ -739,14 +778,17 @@ else:
 
         .back-card-outer:hover {
             transform: translateY(-3px) scale(1.02) !important;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.50) 100%) !important;
             border-color: rgba(255, 255, 255, 1) !important;
             box-shadow: 0 15px 30px rgba(0,0,0,0.08), inset 0 1px 2px rgba(255,255,255,1) !important;
             cursor: pointer !important;
         }
 
+        .back-card-outer:hover::before {
+            opacity: 1 !important;
+        }
+
         .back-card-outer:hover .back-icon {
-            transform: translateX(-4px);
+            transform: translateX(-4px) !important;
         }
 
         /* 统一屏蔽作为事件中继的 Streamlit 隐藏按钮，保证零干扰 */
