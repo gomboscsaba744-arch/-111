@@ -791,12 +791,17 @@ else:
             transform: translateX(-4px) !important;
         }
 
-        /* 统一屏蔽作为事件中继的 Streamlit 隐藏按钮，保证零干扰 */
-        div[data-testid="stButton"]:has(button:contains("RELAY_BTN")),
-        button:contains("RELAY_BTN") {
+        /* 统一完全隐藏作为事件中继的 Streamlit 原生按钮（标准 CSS 语法，0ms 瞬间隐藏，绝不影响保存修改弹窗） */
+        div[data-testid="stButton"]:not(div[role="dialog"] div[data-testid="stButton"]),
+        div[class*="stButton"]:not(div[role="dialog"] div[class*="stButton"]) {
             display: none !important;
             position: absolute !important;
             opacity: 0 !important;
+            height: 0 !important;
+            width: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
             pointer-events: none !important;
         }
     </style>
