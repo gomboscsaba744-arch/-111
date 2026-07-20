@@ -79,11 +79,15 @@ def merge_cpf_results():
             valid_names[order_no] = result
 
     # 遍历更新 DSers 模板 (import_orders.xlsx)
+    total_dsers = len(df_dsers)
+    dsers_processed = 0
     for idx, row in df_dsers.iterrows():
+        dsers_processed += 1
         order_no = row['Order_number']
         if order_no in valid_names:
             df_dsers.at[idx, 'Contact_person'] = valid_names[order_no]
             update_count += 1
+        print(f"[*] 桥接进度提示：现在是 {dsers_processed}/{total_dsers} (共 {total_dsers} 条，当前成功回填 {update_count} 条)")
             
     # 同时更新原始 dsers模板.xlsx
     from config import DSERS_TEMPLATE

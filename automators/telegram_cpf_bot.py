@@ -712,16 +712,38 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
             await asyncio.sleep(0.2)
             return True
 
+        total_count = 0
+        for r in range(2, ws.max_row + 1):
+            if ws.cell(row=r, column=4).value and str(ws.cell(row=r, column=4).value).strip():
+                total_count += 1
+        
+        processed_count = 0
         row = 2
         while True:
             has_more = await process_cpf_row(row, is_retry=False)
             if not has_more:
                 break
+            cpf_cell = ws.cell(row=row, column=4).value
+            if cpf_cell and str(cpf_cell).strip():
+                processed_count += 1
+                progress_msg = f"[*] 进度提示：现在是 {processed_count}/{total_count} (共需处理 {total_count} 条，当前已处理 {processed_count} 条)"
+                print(progress_msg)
+                if progress_callback:
+                    progress_callback(progress_msg)
             row += 1
 
         print("\n=======================================================")
         print("[*] 第一遍查询完成！现在开始重新查询之前失败的号码...")
         print("=======================================================")
+        
+        retry_rows = []
+        for r in range(2, ws.max_row + 1):
+            status_val = str(ws.cell(row=r, column=5).value or "").strip()
+            if status_val in ["遇到验证码且未能通过", "查询超时", "提取失败"]:
+                retry_rows.append(r)
+        
+        total_retry = len(retry_rows)
+        retry_processed = 0
         
         row = 2
         while True:
@@ -729,6 +751,12 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
             if not has_more:
                 print(f"[*] 失败重试环节处理完成！")
                 break
+            if row in retry_rows:
+                retry_processed += 1
+                progress_msg = f"[*] 重试进度提示：现在是 {retry_processed}/{total_retry} (重试总数: {total_retry} 条，当前重试到第 {retry_processed} 条)"
+                print(progress_msg)
+                if progress_callback:
+                    progress_callback(progress_msg)
             row += 1
 
         print("[*] 所有任务执行完毕！")

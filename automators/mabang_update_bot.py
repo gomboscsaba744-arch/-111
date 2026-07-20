@@ -21,8 +21,11 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
     log(f"[*] 读取 Excel 数据: {excel_path}")
     df = pd.read_excel(excel_path, dtype=str)
     
+    total_count = len(df)
+    processed_count = 0
     update_data = []
     for idx, row in df.iterrows():
+        processed_count += 1
         order_id = str(row.iloc[0]).strip()
         new_name = str(row.iloc[4]).strip() # 第5列，通常是结果列
         
@@ -39,6 +42,7 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
                 order_id = order_id[:-2]
                 
             update_data.append(f"{order_id}\t{new_name}")
+        log(f"[*] 进度提示：现在是 {processed_count}/{total_count} (共需读取 {total_count} 条，当前已读取并准备好 {len(update_data)} 条)")
             
     if not update_data:
         log("[!] 没有提取到任何数据。")

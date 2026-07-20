@@ -97,8 +97,11 @@ def sync_cpf_results_to_order_template(script_path, order_path):
             valid_names[order_no] = result
 
     update_count = 0
+    total_orders = len(df_order)
+    processed_orders = 0
     # 更新下单模板对应的客户姓名列
     for idx, row in df_order.iterrows():
+        processed_orders += 1
         order_no = str(row.iloc[order_col_idx]).strip()
         if order_no in valid_names:
             df_order.iat[idx, name_col_idx] = valid_names[order_no]
@@ -110,6 +113,7 @@ def sync_cpf_results_to_order_template(script_path, order_path):
                 if res and res not in ["", "nan", "无", "遇到验证码且未能通过", "查询超时", "提取失败"]:
                     df_order.iat[idx, name_col_idx] = res
                     update_count += 1
+        print(f"[*] 进度提示：现在是 {processed_orders}/{total_orders} (共 {total_orders} 条，当前成功同步 {update_count} 条)")
 
     try:
         save_df_to_excel(df_order, order_path)

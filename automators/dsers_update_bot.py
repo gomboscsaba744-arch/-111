@@ -48,8 +48,24 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
         while "login" in page.url.lower():
             await asyncio.sleep(1)
             
-        print("[*] 检测到已脱离登录页面。等待页面加载缓冲...")
-        await asyncio.sleep(3)
+        print("[*] 检测到已进入 DSers 首页/主控台！")
+        print("[*] 为方便您操作（如：按掉广告、确认账号或退出重进等），系统将等待 15 秒...")
+        for i in range(15, 0, -1):
+            if "login" in page.url.lower():
+                print("[*] 检测到您点击了退出，正在等待您登录新账号...")
+                while "login" in page.url.lower():
+                    await asyncio.sleep(1)
+                print("[*] 重新登录成功！等待 5 秒缓冲...")
+                await asyncio.sleep(5)
+                break
+            if i % 5 == 0 or i <= 3:
+                print(f"[*] 距离自动开始还剩 {i} 秒 (如需退出切换账号请立刻点击)...")
+            await asyncio.sleep(1)
+
+        while "login" in page.url.lower():
+            await asyncio.sleep(1)
+
+        print("[*] 准备开始执行自动化操作...")
         
         # 2. 直接访问指定的 AliExpress 页面 (绕过点击侧边栏)，如果跳转不成功再尝试点击
         target_url = "https://www.dsers.com/application/orders/159831080"
@@ -76,6 +92,12 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
         print("[*] 准备就绪，开始处理表格数据...")
         
         # 3. 循环处理数据
+        total_count = 0
+        for r in range(2, ws.max_row + 1):
+            if ws.cell(row=r, column=1).value and str(ws.cell(row=r, column=1).value).strip():
+                total_count += 1
+
+        processed_count = 0
         row = 2
         while True:
             order_id = ws.cell(row=row, column=1).value  # A列：搜索单号
@@ -357,6 +379,9 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
             except Exception:
                 pass
                 
+            processed_count += 1
+            progress_msg = f"[*] 进度提示：现在是 {processed_count}/{total_count} (共需处理 {total_count} 条，当前已处理 {processed_count} 条)"
+            print(progress_msg)
             row += 1
 
         print("[*] 所有任务执行完毕！")

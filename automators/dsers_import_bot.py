@@ -36,8 +36,24 @@ async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = F
             while "login" in page.url.lower():
                 await asyncio.sleep(1)
             
-            log("[*] 检测到处于主控台状态。等待页面缓冲...")
-            await asyncio.sleep(3)
+            log("[*] 检测到已进入 DSers 首页/主控台！")
+            log("[*] 为方便您操作（如：按掉广告、确认账号或退出重进等），系统将等待 15 秒...")
+            for i in range(15, 0, -1):
+                if "login" in page.url.lower():
+                    log("[*] 检测到您点击了退出，正在等待您登录新账号...")
+                    while "login" in page.url.lower():
+                        await asyncio.sleep(1)
+                    log("[*] 重新登录成功！等待 5 秒缓冲...")
+                    await asyncio.sleep(5)
+                    break
+                if i % 5 == 0 or i <= 3:
+                    log(f"[*] 距离自动开始还剩 {i} 秒 (如需退出切换账号请立刻点击)...")
+                await asyncio.sleep(1)
+
+            while "login" in page.url.lower():
+                await asyncio.sleep(1)
+
+            log("[*] 准备开始执行自动化导入...")
 
             # 2. 点击左侧 CSV Upload
             log("[*] 正在点击【CSV Upload】...")
