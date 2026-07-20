@@ -220,7 +220,7 @@ st.markdown("""
         border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         border-right: 1px solid rgba(255, 255, 255, 0.1);
         box-shadow: 0 30px 60px rgba(0,0,0,0.05);
-        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.8s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.8s cubic-bezier(0.16, 1, 0.3, 1), border 0.8s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
         position: relative;
         overflow: hidden;
         height: 460px;
@@ -239,7 +239,7 @@ st.markdown("""
         border: 1px solid rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(50px) saturate(120%);
         -webkit-backdrop-filter: blur(50px) saturate(120%);
-        transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.8s cubic-bezier(0.16, 1, 0.3, 1), background 0.8s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.8s cubic-bezier(0.16, 1, 0.3, 1), border 0.8s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
         position: relative;
         z-index: 10;
     }
