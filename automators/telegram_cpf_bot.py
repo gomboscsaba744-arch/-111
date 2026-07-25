@@ -45,11 +45,17 @@ def solve_math_captcha(image_bytes):
                 if len(digit_boxes) >= 2:
                     # 有时候识别出了加号（也是个大框），为了保险，我们只看最左边和最右边的两个数字框
                     box1, box2 = digit_boxes[0], digit_boxes[-1]
-                    img = Image.open(io.BytesIO(image_bytes)).convert('L')
+                    img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
                     pixels = img.load()
                     for x in range(img.width):
                         for y in range(img.height):
-                            pixels[x, y] = 255 if pixels[x, y] > 160 else 0
+                            r, g, b = pixels[x, y]
+                            if r > 160 and g > 160 and b > 160:
+                                pixels[x, y] = (255, 255, 255)
+                            else:
+                                pixels[x, y] = (0, 0, 0)
+                    img = img.convert('L')
+                    pixels = img.load()
                             
                     # 通过两个数字的中心点来定位符号中心
                     c1 = (box1[0] + box1[2]) / 2
@@ -134,20 +140,21 @@ def solve_math_captcha(image_bytes):
         except Exception as e:
             print(f"[!] 物理分析运算符出错: {e}")
             
-        # 1. 加载并转为灰度图
-        image = Image.open(io.BytesIO(image_bytes))
-        image = image.convert('L') 
+        # 1. 加载并转为 RGB 模式进行色彩过滤
+        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
         
-        # 2. 二值化：过滤掉较暗的干扰线，保留高亮文字
+        # 2. RGB 二值化：严格过滤掉带色彩的干扰线，仅保留纯白/灰白的高亮文字
         pixels = image.load()
         width, height = image.size
         for x in range(width):
             for y in range(height):
-                # 稍微降低阈值，避免把稍暗的字也给过滤掉
-                if pixels[x, y] > 160:
-                    pixels[x, y] = 255
+                r, g, b = pixels[x, y]
+                if r > 160 and g > 160 and b > 160:
+                    pixels[x, y] = (255, 255, 255)
                 else:
-                    pixels[x, y] = 0
+                    pixels[x, y] = (0, 0, 0)
+                    
+        image = image.convert('L')
                     
         # 3. 将净化后的图片转换为 bytes
         img_byte_arr = io.BytesIO()
@@ -545,9 +552,11 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                         certain_ans, possible_answers = solve_math_captcha(image_bytes)
                         
                         buttons = await bubble.query_selector_all('button')
-                        if not buttons:
-                            print("[!] 暂时未找到按钮，等待1秒后再试...")
+                        wait_sec = 0
+                        while not buttons and wait_sec < 5:
+                            print(f"[!] 暂时未找到按钮，等待中 ({wait_sec}s/5s)...")
                             await asyncio.sleep(1)
+                            wait_sec += 1
                             buttons = await bubble.query_selector_all('button')
                     except Exception as e:
                         print(f"[!] 获取验证码图片或按钮失败 (可能DOM已刷新): {e}")
@@ -568,13 +577,13 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                     
                     # 1. 尝试匹配确定的答案
                     if certain_ans:
+                        # If we have a confident answer, check if it's in the buttons
                         for btn, txt in btn_texts:
                             if txt == certain_ans:
-                                target_btn = btn
-                                target_txt = txt
-                                print(f"[*] 匹配到确定的答案 '{txt}'...")
+                                target_btn, target_txt = btn, txt
+                                print(f"[*] 确信答案 '{txt}' 存在于选项中，直接使用。")
                                 break
-                                
+                    
                     # 2. 如果没有确定的答案（或确定答案不在选项里），检查可能的答案
                     if not target_btn and possible_answers:
                         matched_guesses = []
@@ -586,12 +595,12 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                                     
                         if len(matched_guesses) == 1:
                             target_btn, target_txt = matched_guesses[0]
-                            print(f"[*] 虽然无法100%确认答案，但在选项中只有 '{target_txt}' 这一个可能，推断为唯一解...")
+                            print(f"[*] 虽然没有确信答案，但在选项中只有 '{target_txt}' 这一个可能，推断为唯一解...")
                         elif len(matched_guesses) > 1:
-                            print(f"[!] 选项中存在多个可能答案 {[m[1] for m in matched_guesses]}，存在歧义，交由人工判断。")
+                            print(f"[!] 选项中存在多个可能答案 {[m[1] for m in matched_guesses]}，存在歧义，拒绝瞎猜。")
 
                     if target_btn:
-                        print(f"[*] 准备自主进行点击 '{target_txt}'...")
+                        print(f"[*] 正在自动点击确信答案 '{target_txt}'...")
                         try:
                             try:
                                 await target_btn.click(force=True, delay=100)
@@ -619,36 +628,16 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                     else:
                         print(f"[*] 无法猜测出可能答案。")
                         
-                    print("\n=======================================================")
-                    print("[!!!] 请在弹出的浏览器窗口中手动点击正确的验证码按钮 [!!!]")
-                    print("=======================================================\n")
-                    print("[*] 脚本已暂停，等待您的手动点击...")
-                    
-                    wait_msg_count = len(message_elements)
-                    wait_reply_text = reply_text
-                    
-                    while True:
-                        await close_popup_if_any()
-                        await asyncio.sleep(1.0)
-                        check_msgs = await page.query_selector_all('div.bubble.is-in .message')
-                        if not check_msgs:
-                            continue
-                        
-                        check_text = await check_msgs[-1].inner_text()
-                        # 检测到消息数量增加，或验证码消息文本发生变化(被机器人编辑为结果)
-                        if len(check_msgs) > wait_msg_count or check_text != wait_reply_text:
-                            print("\n[*] 侦测到您已手动点击完成！(机器人产生了新响应)")
-                            break
-                    
-                    print("[*] 恢复自动化执行，重新发送查询以获取结果...")
-                    last_handled_captcha = captcha_id
-                    for _ in range(15):
-                        await asyncio.sleep(0.2)
-                        if await close_popup_if_any():
-                            break
-                    await send_query()
-                    attempts = 0
-                    continue
+                    print("[!] 无法自动识别验证码，自动测试模式下直接跳过并记录失败。")
+                    import time
+                    with open(f"scratch/failed_captcha_{int(time.time())}.png", "wb") as f:
+                        f.write(image_bytes)
+                    ws.cell(row=r_idx, column=5, value="遇到验证码且未能通过")
+                    try:
+                        wb.save(excel_path)
+                    except PermissionError:
+                        pass
+                    return True # Skip to next row
                 
                 # 注意：只要进入了 is_new_reply 为 True 的阶段，哪怕它是普通的警告，也属于新消息了
                 is_captcha_msg = (
