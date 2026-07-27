@@ -324,19 +324,19 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
         log(f"[*] 正在打开 Telegram Web...")
         await page.goto('https://web.telegram.org/k/', wait_until='domcontentloaded', timeout=120000)
         
-        print(f"[*] 正在左侧聊天列表中寻找 '{CHAT_NAME}' ...")
+        log(f"[*] 正在左侧聊天列表中寻找 '{CHAT_NAME}' ...")
         try:
             chat_locator = page.locator(f'text="{CHAT_NAME}"').first
             await chat_locator.wait_for(state='visible', timeout=60000)
             await chat_locator.click()
         except Exception as e:
-            print(f"[!] 找不到对应的聊天对象，请检查是否在左侧列表中。错误信息: {e}")
+            log(f"[!] 找不到对应的聊天对象，请检查是否在左侧列表中。错误信息: {e}")
             await context.close()
             return
             
         input_selector = 'div.input-message-input'
         await page.wait_for_selector(input_selector, timeout=30000)
-        print("[*] 聊天界面加载完毕！开始处理表格数据...")
+        log("[*] 聊天界面加载完毕！开始处理表格数据...")
         
         last_successful_reply_text = ""
         last_processed_cpf = ""
@@ -347,7 +347,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
             
             if not cpf_cell:
                 if not is_retry:
-                    print(f"[*] 第 {r_idx} 行遇到空号码，此遍处理完成！")
+                    log(f"[*] 第 {r_idx} 行遇到空号码，此遍处理完成！")
                 return False
                 
             status_cell = ws.cell(row=r_idx, column=5).value # E列
@@ -355,7 +355,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
             
             if not is_retry:
                 if status_str != "":
-                    print(f"[*] 第 {r_idx} 行已有结果 ({status_str})，跳过...")
+                    log(f"[*] 第 {r_idx} 行已有结果 ({status_str})，跳过...")
                     return True
             else:
                 if status_str not in ["遇到验证码且未能通过", "查询超时", "提取失败"]:
@@ -363,9 +363,9 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
 
             cpf_text = str(cpf_cell).strip()
             if is_retry:
-                print(f"\n[{r_idx}] (重试) 正在重新查询之前失败的 CPF: {cpf_text}")
+                log(f"\n[{r_idx}] (重试) 正在重新查询之前失败的 CPF: {cpf_text}")
             else:
-                print(f"\n[{r_idx}] 正在查询 CPF: {cpf_text}")
+                log(f"\n[{r_idx}] 正在查询 CPF: {cpf_text}")
             
             pre_query_text = ""
             pre_in_msg_count = 0
@@ -387,11 +387,11 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                         return false;
                     }''')
                     if clicked:
-                        print("[*] 已成功侦测并强制关闭了 OK 弹窗！")
+                        log("[*] 已成功侦测并强制关闭了 OK 弹窗！")
                         await asyncio.sleep(0.5)
                         return True
                 except Exception as e:
-                    print(f"[!] 关闭弹窗时出错: {e}")
+                    log(f"[!] 关闭弹窗时出错: {e}")
                 return False
 
             async def send_query():
@@ -462,7 +462,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                 if reply_text == last_successful_reply_text and cpf_text != last_processed_cpf:
                     if msg_id != last_handled_leftover_id:
                         last_handled_leftover_id = msg_id
-                        print(f"[!] 警告：检测到上一个单号 ({last_processed_cpf}) 的延迟残留回复，自动忽略...")
+                        log(f"[!] 警告：检测到上一个单号 ({last_processed_cpf}) 的延迟残留回复，自动忽略...")
                     attempts += 1
                     continue
                 
@@ -490,19 +490,7 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                         attempts += 1
                         continue
                         
-                    print(f"[!] 检测到验证码！等待高清图片渲染...")
-                    wait_time = 0
-                    while wait_time < 5.0:
-                        if bubble:
-                            img_el = await bubble.query_selector('.media-photo')
-                            if not img_el:
-                                img_el = await bubble.query_selector('img')
-                            if img_el:
-                                img_src = await img_el.get_attribute('src') or ""
-                                if img_src and "data:image" not in img_src:
-                                    break
-                        await asyncio.sleep(0.2)
-                        wait_time += 0.2
+                    log(f"[!] 检测到验证码！开始尝试识别...")
                     
                     await asyncio.sleep(0.5)
                     captcha_id = f"{msg_id}_{img_src}" if msg_id else f"{reply_text}_{img_src}"
@@ -512,107 +500,227 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                         if not buttons_check:
                             if captcha_id != verification_failed_id:
                                 verification_failed_id = captcha_id
-                                print(f"[!] 消息含关键词但无图片无按钮: {reply_text[:80]!r}")
+                                log(f"[!] 消息含关键词但无图片无按钮: {reply_text[:80]!r}")
                                 match_min = re.search(r'(\d+)\s*minutos', reply_text.lower())
                                 if match_min:
                                     if not getattr(send_query, "wait_min_attempts", False):
                                         send_query.wait_min_attempts = 1
-                                        print(f"[*] 收到验证码过期/等待提示: {reply_text}。先尝试立即重新发送一次，看是否能刷出新验证码...")
+                                        log(f"[*] 收到验证码过期/等待提示: {reply_text}。先尝试立即重新发送一次，看是否能刷出新验证码...")
                                         await send_query()
+                                        
+                                        log("[*] 重发后扫描屏幕，确认是否有遗漏的验证码...")
+                                        await asyncio.sleep(2)
+                                        recent_bubbles = await page.query_selector_all('div.bubble.is-in')
+                                        found_captcha = False
+                                        for b_idx in range(len(recent_bubbles)-1, max(-1, len(recent_bubbles)-6), -1):
+                                            b = recent_bubbles[b_idx]
+                                            img_el = await b.query_selector('.media-photo')
+                                            if not img_el:
+                                                img_el = await b.query_selector('img')
+                                            btns = await b.query_selector_all('button')
+                                            if img_el and btns:
+                                                log("[*] 找到了遗漏的验证码！开始尝试识别...")
+                                                await asyncio.sleep(0.5)
+                                                try:
+                                                    image_bytes = await img_el.screenshot()
+                                                    certain_ans, possible_answers = solve_math_captcha(image_bytes)
+                                                    btn_texts = []
+                                                    for btn in btns:
+                                                        txt = (await btn.inner_text()).strip()
+                                                        btn_texts.append((btn, txt))
+                                                    
+                                                    target_btn, target_txt = None, None
+                                                    if certain_ans:
+                                                        for btn, txt in btn_texts:
+                                                            if txt == certain_ans:
+                                                                target_btn, target_txt = btn, txt
+                                                                break
+                                                    if not target_btn and possible_answers:
+                                                        matched = [ (btn, txt) for btn, txt in btn_texts if txt in possible_answers ]
+                                                        if len(matched) == 1:
+                                                            target_btn, target_txt = matched[0]
+                                                            
+                                                    if target_btn:
+                                                        log(f"[*] 自动点击答案 '{target_txt}'...")
+                                                        try:
+                                                            await target_btn.click(force=True, delay=100)
+                                                        except Exception as e:
+                                                            await target_btn.evaluate('b => b.click()')
+                                                        log("[*] 验证码已解答，正在等待确认弹窗...")
+                                                        for _ in range(15):
+                                                            await asyncio.sleep(0.2)
+                                                            if await close_popup_if_any():
+                                                                break
+                                                        log("[*] 重发因验证码未解答而错过的 CPF...")
+                                                        await send_query()
+                                                        found_captcha = True
+                                                    else:
+                                                        log("[!] 遗漏的验证码存在歧义或无法识别，请人工介入：请手动点击正确答案！(等待60秒)...")
+                                                        manual_solved = False
+                                                        for _ in range(300):
+                                                            await asyncio.sleep(0.2)
+                                                            if await close_popup_if_any():
+                                                                manual_solved = True
+                                                                break
+                                                        if manual_solved:
+                                                            log("[*] 检测到人工已解决验证码！重发错过的 CPF...")
+                                                            await send_query()
+                                                            found_captcha = True
+                                                        else:
+                                                            log("[!] 等待人工解决超时！根据要求重新扫描并尝试强行盲猜一个答案...")
+                                                            recent_bubbles = await page.query_selector_all('div.bubble.is-in')
+                                                            guessed_btn = None
+                                                            guessed_txt = None
+                                                            for gb_idx in range(len(recent_bubbles)-1, max(-1, len(recent_bubbles)-6), -1):
+                                                                gb = recent_bubbles[gb_idx]
+                                                                gimg_el = await gb.query_selector('.media-photo')
+                                                                if not gimg_el:
+                                                                    gimg_el = await gb.query_selector('img')
+                                                                gbtns = await gb.query_selector_all('button')
+                                                                if gimg_el and gbtns:
+                                                                    try:
+                                                                        gimage_bytes = await gimg_el.screenshot()
+                                                                        _, gpos = solve_math_captcha(gimage_bytes)
+                                                                        gbtn_texts = [(btn, (await btn.inner_text()).strip()) for btn in gbtns]
+                                                                        if gpos:
+                                                                            for btn, txt in gbtn_texts:
+                                                                                if txt in gpos:
+                                                                                    guessed_btn, guessed_txt = btn, txt
+                                                                                    break
+                                                                        if not guessed_btn and gbtn_texts:
+                                                                            guessed_btn, guessed_txt = gbtn_texts[0]
+                                                                    except Exception as ge:
+                                                                        log(f"[!] 盲猜出错: {ge}")
+                                                                        if gbtns:
+                                                                            guessed_btn = gbtns[0]
+                                                                    break
+                                                            
+                                                            if guessed_btn:
+                                                                log(f"[*] 强行盲猜答案 '{guessed_txt}' 并点击...")
+                                                                try:
+                                                                    await guessed_btn.click(force=True, delay=100)
+                                                                except:
+                                                                    await guessed_btn.evaluate('b => b.click()')
+                                                                await asyncio.sleep(1)
+                                                                await close_popup_if_any()
+                                                                log("[*] 已盲猜，重发 CPF...")
+                                                                await send_query()
+                                                                found_captcha = True
+                                                except Exception as e:
+                                                    log(f"[!] 处理遗漏验证码时出错: {e}")
+                                                break
+                                                
+                                        if not found_captcha:
+                                            log("[*] 未发现验证码，等待后续处理 (若再次收到警告则真正休眠)...")
+                                            
                                         attempts = 0
                                     else:
                                         wait_mins = int(match_min.group(1))
-                                        print(f"[*] 再次收到等待提示，确实需要等待 {wait_mins} 分钟。开始休眠...")
+                                        log(f"[*] 再次收到等待提示，确实需要等待 {wait_mins} 分钟。开始休眠...")
                                         await asyncio.sleep(wait_mins * 60)
                                         send_query.wait_min_attempts = 0
-                                        print(f"[*] 休眠结束，重新发送 CPF: {cpf_text} ...")
+                                        log(f"[*] 休眠结束，重新发送 CPF: {cpf_text} ...")
                                         await send_query()
                                         attempts = 0
                                 elif "muitas requisições" in reply_text.lower() or "suspenso" in reply_text.lower():
-                                    print(f"[*] 判定为频率限制或封禁，5 分钟后重新发送 CPF: {cpf_text} ...")
+                                    log(f"[*] 判定为频率限制或封禁，5 分钟后重新发送 CPF: {cpf_text} ...")
                                     await asyncio.sleep(300)
                                     await send_query()
                                     attempts = 0
-                                    print(f"[*] 已重新发送，继续等待回复...")
+                                    log(f"[*] 已重新发送，继续等待回复...")
                                 else:
-                                    print("[*] 判定为普通警告提示 (如验证码过期)，忽略此消息并继续等待...")
+                                    log("[*] 判定为普通警告提示 (如验证码过期)，忽略此消息并继续等待...")
                             else:
                                 attempts += 1
                             continue
 
                     if not bubble:
-                        print("[!] 找不到验证码的 bubble 容器")
+                        log("[!] 找不到验证码的 bubble 容器")
                         break
                         
                     if not img_el:
                         img_el = last_message
                         
-                    try:
-                        image_bytes = await img_el.screenshot()
-                        certain_ans, possible_answers = solve_math_captcha(image_bytes)
-                        
-                        buttons = await bubble.query_selector_all('button')
-                        wait_sec = 0
-                        while not buttons and wait_sec < 5:
-                            print(f"[!] 暂时未找到按钮，等待中 ({wait_sec}s/5s)...")
-                            await asyncio.sleep(1)
-                            wait_sec += 1
+                    target_btn = None
+                    target_txt = None
+                    possible_answers = None
+                    image_bytes = None
+                    
+                    for scan_attempt in range(4):
+                        if scan_attempt > 0:
+                            log(f"[!] 第 {scan_attempt} 次尝试未得到确信结果，等待 5 秒后重试扫描...")
+                            await asyncio.sleep(5)
+                            # 重新获取图片元素，以防 DOM 刷新
+                            if bubble:
+                                img_el = await bubble.query_selector('.media-photo')
+                                if not img_el:
+                                    img_el = await bubble.query_selector('img')
+                            if not img_el:
+                                img_el = last_message
+                                
+                        try:
+                            image_bytes = await img_el.screenshot()
+                            certain_ans, possible_answers = solve_math_captcha(image_bytes)
+                            
                             buttons = await bubble.query_selector_all('button')
-                    except Exception as e:
-                        print(f"[!] 获取验证码图片或按钮失败 (可能DOM已刷新): {e}")
+                            wait_sec = 0
+                            while not buttons and wait_sec < 5:
+                                log(f"[!] 暂时未找到按钮，等待中 ({wait_sec}s/5s)...")
+                                await asyncio.sleep(1)
+                                wait_sec += 1
+                                buttons = await bubble.query_selector_all('button')
+                                
+                            log(f"[*] 第 {scan_attempt+1} 次尝试提取到 {len(buttons)} 个按钮")
+                            btn_texts = []
+                            for btn in buttons:
+                                txt = (await btn.inner_text()).strip()
+                                btn_texts.append((btn, txt))
+                                
+                            if certain_ans:
+                                for btn, txt in btn_texts:
+                                    if txt == certain_ans:
+                                        target_btn, target_txt = btn, txt
+                                        log(f"[*] 确信答案 '{txt}' 存在于选项中，直接使用。")
+                                        break
+                                        
+                            if not target_btn and possible_answers:
+                                matched_guesses = []
+                                for ans_str in possible_answers:
+                                    for btn, txt in btn_texts:
+                                        if txt == ans_str:
+                                            matched_guesses.append((btn, txt))
+                                            break
+                                if len(matched_guesses) == 1:
+                                    target_btn, target_txt = matched_guesses[0]
+                                    log(f"[*] 虽然没有确信答案，但在选项中只有 '{target_txt}' 这一个可能，推断为唯一解...")
+                                elif len(matched_guesses) > 1:
+                                    log(f"[!] 选项中存在多个可能答案 {[m[1] for m in matched_guesses]}，存在歧义，拒绝瞎猜。")
+                                    
+                        except Exception as e:
+                            log(f"[!] 获取验证码图片或按钮失败 (可能DOM已刷新): {e}")
+                            
+                        if target_btn or possible_answers or certain_ans:
+                            break
+                    
+                    if not target_btn and not possible_answers and not image_bytes:
                         attempts += 1
                         await asyncio.sleep(0.5)
                         continue
-                        
-                    print(f"[*] 提取到 {len(buttons)} 个按钮")
-                    
-                    # ------ 半自动化安全点击逻辑 ------
-                    btn_texts = []
-                    for btn in buttons:
-                        txt = (await btn.inner_text()).strip()
-                        btn_texts.append((btn, txt))
-                        
-                    target_btn = None
-                    target_txt = None
-                    
-                    # 1. 尝试匹配确定的答案
-                    if certain_ans:
-                        # If we have a confident answer, check if it's in the buttons
-                        for btn, txt in btn_texts:
-                            if txt == certain_ans:
-                                target_btn, target_txt = btn, txt
-                                print(f"[*] 确信答案 '{txt}' 存在于选项中，直接使用。")
-                                break
-                    
-                    # 2. 如果没有确定的答案（或确定答案不在选项里），检查可能的答案
-                    if not target_btn and possible_answers:
-                        matched_guesses = []
-                        for ans_str in possible_answers:
-                            for btn, txt in btn_texts:
-                                if txt == ans_str:
-                                    matched_guesses.append((btn, txt))
-                                    break
-                                    
-                        if len(matched_guesses) == 1:
-                            target_btn, target_txt = matched_guesses[0]
-                            print(f"[*] 虽然没有确信答案，但在选项中只有 '{target_txt}' 这一个可能，推断为唯一解...")
-                        elif len(matched_guesses) > 1:
-                            print(f"[!] 选项中存在多个可能答案 {[m[1] for m in matched_guesses]}，存在歧义，拒绝瞎猜。")
 
                     if target_btn:
-                        print(f"[*] 正在自动点击确信答案 '{target_txt}'...")
+                        log(f"[*] 正在自动点击确信答案 '{target_txt}'...")
                         try:
                             try:
                                 await target_btn.click(force=True, delay=100)
                             except Exception as e:
                                 await target_btn.evaluate('b => b.click()')
                         except Exception as e:
-                            print(f"[!] 点击按钮失败 (可能DOM已刷新): {e}")
+                            log(f"[!] 点击按钮失败 (可能DOM已刷新): {e}")
                             attempts += 1
                             await asyncio.sleep(0.5)
                             continue
                         
-                        print("[*] 验证码已解答，正在等待并秒关确认弹窗...")
+                        log("[*] 验证码已解答，正在等待并秒关确认弹窗...")
                         last_handled_captcha = captcha_id
                         for _ in range(15):
                             await asyncio.sleep(0.2)
@@ -622,23 +730,78 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                         attempts = 0
                         continue
                         
-                    print(f"[!] 无法100%确认答案，或确定的答案不在选项中！")
+                    log(f"[!] 无法100%确认答案，或确定的答案不在选项中！")
                     if possible_answers:
-                        print(f"[*] 猜测的可能答案: {possible_answers}")
+                        log(f"[*] 猜测的可能答案: {possible_answers}")
                     else:
-                        print(f"[*] 无法猜测出可能答案。")
+                        log(f"[*] 无法猜测出可能答案。")
                         
-                    print("[!] 无法自动识别验证码，自动测试模式下直接跳过并记录失败。")
-                    import time
-                    with open(f"scratch/failed_captcha_{int(time.time())}.png", "wb") as f:
-                        f.write(image_bytes)
-                    ws.cell(row=r_idx, column=5, value="遇到验证码且未能通过")
-                    try:
-                        wb.save(excel_path)
-                    except PermissionError:
-                        pass
-                    return True # Skip to next row
+                    log("[!] 无法自动识别验证码，请人工介入：请手动点击正确答案！(等待60秒)...")
+                    manual_solved = False
+                    for _ in range(300):
+                        await asyncio.sleep(0.2)
+                        if await close_popup_if_any():
+                            manual_solved = True
+                            break
+                    
+                    if manual_solved:
+                        log("[*] 检测到人工已解决验证码！重发 CPF...")
+                        await send_query()
+                        attempts = 0
+                        continue
+                    else:
+                        log("[!] 等待人工超时，根据要求重新扫描并尝试强行盲猜一个答案...")
+                        recent_bubbles = await page.query_selector_all('div.bubble.is-in')
+                        guessed_btn = None
+                        guessed_txt = None
+                        for b_idx in range(len(recent_bubbles)-1, max(-1, len(recent_bubbles)-6), -1):
+                            gb = recent_bubbles[b_idx]
+                            gimg_el = await gb.query_selector('.media-photo')
+                            if not gimg_el:
+                                gimg_el = await gb.query_selector('img')
+                            gbtns = await gb.query_selector_all('button')
+                            if gimg_el and gbtns:
+                                try:
+                                    gimage_bytes = await gimg_el.screenshot()
+                                    _, gpos = solve_math_captcha(gimage_bytes)
+                                    gbtn_texts = [(btn, (await btn.inner_text()).strip()) for btn in gbtns]
+                                    if gpos:
+                                        for btn, txt in gbtn_texts:
+                                            if txt in gpos:
+                                                guessed_btn, guessed_txt = btn, txt
+                                                break
+                                    if not guessed_btn and gbtn_texts:
+                                        guessed_btn, guessed_txt = gbtn_texts[0]
+                                except:
+                                    if gbtns:
+                                        guessed_btn = gbtns[0]
+                                break
+                                
+                        if guessed_btn:
+                            log(f"[*] 强行盲猜答案 '{guessed_txt}' 并点击...")
+                            try:
+                                await guessed_btn.click(force=True, delay=100)
+                            except:
+                                await guessed_btn.evaluate('b => b.click()')
+                            await asyncio.sleep(1)
+                            await close_popup_if_any()
+                            log("[*] 已盲猜，重发 CPF...")
+                            await send_query()
+                            attempts = 0
+                            continue
+                        else:
+                            log("[!] 重新扫描未找到验证码，自动测试模式下直接跳过并记录失败。")
+                            import time
+                            with open(f"scratch/failed_captcha_{int(time.time())}.png", "wb") as f:
+                                f.write(image_bytes)
+                            ws.cell(row=r_idx, column=5, value="遇到验证码且未能通过")
+                            try:
+                                wb.save(excel_path)
+                            except PermissionError:
+                                pass
+                            return True # Skip to next row
                 
+
                 # 注意：只要进入了 is_new_reply 为 True 的阶段，哪怕它是普通的警告，也属于新消息了
                 is_captcha_msg = (
                     "muitas requisições" in text_lower
@@ -648,18 +811,18 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                 )
                 if not is_captcha_msg and reply_text.strip() and captcha_id != verification_failed_id:
                     verification_failed_id = captcha_id
-                    print(f"[!] 收到验证失败回复（无 nome、无验证码）: {reply_text[:80]!r}")
-                    print(f"[*] 5 分钟后重新发送 CPF: {cpf_text} ...")
+                    log(f"[!] 收到验证失败回复（无 nome、无验证码）: {reply_text[:80]!r}")
+                    log(f"[*] 5 分钟后重新发送 CPF: {cpf_text} ...")
                     await asyncio.sleep(300)
                     await send_query()
                     attempts = 0
-                    print(f"[*] 已重新发送，继续等待回复...")
+                    log(f"[*] 已重新发送，继续等待回复...")
                     continue
 
                 attempts += 1
                 
             if is_timeout:
-                print(f"    -> 等待回复超时。")
+                log(f"    -> 等待回复超时。")
                 ws.cell(row=r_idx, column=5, value="查询超时")
             else:
                 text_lower = reply_text.lower()
@@ -667,36 +830,36 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
                     match = re.search(r'(?i)nome[\s:]+([^\n]+)', reply_text)
                     if match:
                         extracted_name = match.group(1).strip()
-                        print(f"    -> 成功提取到名字: {extracted_name}")
+                        log(f"    -> 成功提取到名字: {extracted_name}")
                         ws.cell(row=r_idx, column=5, value=extracted_name)
                         
                         last_successful_reply_text = reply_text
                         last_processed_cpf = cpf_text
                     else:
-                        print(f"    -> 无法用正则提取出名字。原始回复: {reply_text[:50]}...")
+                        log(f"    -> 无法用正则提取出名字。原始回复: {reply_text[:50]}...")
                         if is_retry:
                             ws.cell(row=r_idx, column=5, value="")
                         else:
                             ws.cell(row=r_idx, column=5, value="提取失败")
                 elif "não encontrado" in text_lower or "nao encontrado" in text_lower or "inválido" in text_lower or "invalido" in text_lower or "utilize o comando" in text_lower or "seguido dos" in text_lower or "dígitos do cpf" in text_lower:
-                    print(f"    -> CPF 未找到或无效，跳过此号码。")
+                    log(f"    -> CPF 未找到或无效，跳过此号码。")
                     ws.cell(row=r_idx, column=5, value="无")
                 else:
                     if is_retry:
-                        print(f"    -> 重试仍未成功，将结果留空。")
+                        log(f"    -> 重试仍未成功，将结果留空。")
                         ws.cell(row=r_idx, column=5, value="")
                     else:
                         if "muitas requisições" in text_lower:
-                            print(f"    -> 验证码处理未能成功通过。")
+                            log(f"    -> 验证码处理未能成功通过。")
                             ws.cell(row=r_idx, column=5, value="遇到验证码且未能通过")
                         else:
-                            print(f"    -> 未收到包含 nome 的回复。")
+                            log(f"    -> 未收到包含 nome 的回复。")
                             ws.cell(row=r_idx, column=5, value="提取失败")
                 
             try:
                 wb.save(excel_path)
             except PermissionError:
-                print(f"[!] 保存失败：请不要在 Excel 软件中打开此表格文件！会导致文件被锁定。")
+                log(f"[!] 保存失败：请不要在 Excel 软件中打开此表格文件！会导致文件被锁定。")
                 
             await asyncio.sleep(0.2)
             return True
@@ -716,14 +879,14 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
             if cpf_cell and str(cpf_cell).strip():
                 processed_count += 1
                 progress_msg = f"[*] 进度提示：现在是 {processed_count}/{total_count} (共需处理 {total_count} 条，当前已处理 {processed_count} 条)"
-                print(progress_msg)
+                log(progress_msg)
                 if progress_callback:
                     progress_callback(progress_msg)
             row += 1
 
-        print("\n=======================================================")
-        print("[*] 第一遍查询完成！现在开始重新查询之前失败的号码...")
-        print("=======================================================")
+        log("\n=======================================================")
+        log("[*] 第一遍查询完成！现在开始重新查询之前失败的号码...")
+        log("=======================================================")
         
         retry_rows = []
         for r in range(2, ws.max_row + 1):
@@ -738,17 +901,17 @@ async def run_cpf_query(excel_path=EXCEL_PATH, user_data_dir=USER_DATA_DIR, head
         while True:
             has_more = await process_cpf_row(row, is_retry=True)
             if not has_more:
-                print(f"[*] 失败重试环节处理完成！")
+                log(f"[*] 失败重试环节处理完成！")
                 break
             if row in retry_rows:
                 retry_processed += 1
                 progress_msg = f"[*] 重试进度提示：现在是 {retry_processed}/{total_retry} (重试总数: {total_retry} 条，当前重试到第 {retry_processed} 条)"
-                print(progress_msg)
+                log(progress_msg)
                 if progress_callback:
                     progress_callback(progress_msg)
             row += 1
 
-        print("[*] 所有任务执行完毕！")
+        log("[*] 所有任务执行完毕！")
         await context.close()
 
 if __name__ == '__main__':
