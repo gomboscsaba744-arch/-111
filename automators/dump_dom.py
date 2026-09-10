@@ -7,8 +7,7 @@ async def dump():
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",
-            headless=True
+            headless=False,
         )
         page = await context.new_page()
         await page.goto("https://901067.private.mabangerp.com/index.php?mod=order.list", wait_until='domcontentloaded', timeout=60000)

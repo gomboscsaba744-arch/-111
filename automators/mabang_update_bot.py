@@ -4,9 +4,11 @@ import yaml
 from openpyxl import load_workbook
 from playwright.async_api import async_playwright
 
-async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless: bool = False, progress_callback=None):
+async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless: bool = False, progress_callback=None, task_info=None):
     def log(msg):
         print(msg)
+        if task_info:
+            task_info.check_pause()
         if progress_callback:
             progress_callback(msg)
 
@@ -25,6 +27,8 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
     processed_count = 0
     update_data = []
     for idx, row in df.iterrows():
+        if task_info:
+            task_info.check_pause()
         processed_count += 1
         order_id = str(row.iloc[0]).strip()
         new_name = str(row.iloc[4]).strip() # 第5列，通常是结果列
@@ -43,6 +47,8 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
                 
             update_data.append(f"{order_id}\t{new_name}")
         log(f"[*] 进度提示：现在是 {processed_count}/{total_count} (共需读取 {total_count} 条，当前已读取并准备好 {len(update_data)} 条)")
+        if task_info:
+            task_info.set_progress(processed_count, total_count, prefix="马帮同步", unit="条")
             
     if not update_data:
         log("[!] 没有提取到任何数据。")
@@ -51,15 +57,22 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
     tsv_text = "\n".join(update_data)
     log(f"[*] 成功提取 {len(update_data)} 条数据。")
 
+    for item in ["SingletonLock", "SingletonCookie", "SingletonSocket"]:
+        p_lock = os.path.join(user_data_dir, item)
+        if os.path.exists(p_lock) or os.path.islink(p_lock):
+            try: os.remove(p_lock)
+            except Exception: pass
+
     log("[*] 启动浏览器...")
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",
             headless=headless,
             viewport={'width': 1280, 'height': 800}
         )
-        page = await context.new_page()
+        if task_info:
+            task_info.register_context(context)
+        page = context.pages[0] if len(context.pages) > 0 else await context.new_page()
         
         try:
             # === 第一步：从首页进入并处理自动登录 ===
@@ -105,32 +118,37 @@ async def run_mabang_batch_update(excel_path: str, user_data_dir: str, headless:
             await asyncio.sleep(2) # 缓冲一下，防止 DOM 渲染中
             
             # === 第四步：操作批处理功能 ===
-            log("[*] 正在点击【批处理功能】菜单...")
+            log("[*] 正在打开【更新订单基本信息】弹窗...")
             
-            # 为了防止“高级筛选”等相邻元素在某些低分辨率/特殊布局下遮挡批处理按钮导致点错，直接在 DOM 里摧毁它们！
+            # 直接调用马帮内置函数，避免因 UI 重叠、分辨率导致 Hover 和 Click 失效
             await page.evaluate("""
-                document.querySelectorAll('span').forEach(el => {
-                    if (el.textContent.includes('高级筛选') || el.textContent.includes('普通筛选') || el.textContent.includes('高级搜索')) {
-                        el.remove();
-                    }
-                });
+                if(typeof updateEmailShow === 'function') {
+                    updateEmailShow();
+                } else {
+                    let a = document.querySelector('a[onclick*="updateEmailShow"]');
+                    if (a) a.click();
+                }
             """)
-            await asyncio.sleep(1)
             
-            # 此时使用原本正常的物理点击，绝对不会被覆盖，且能完美触发 Vue/layui 的 Hover 展开事件
-            batch_btn = page.locator('span.text.mr5.ml5:has-text("批处理功能")').first
-            await batch_btn.click(force=True)
-            await asyncio.sleep(1.5)
-            
-            # 还原人类操作模式：精准定位带特定标记的菜单层级
-            log("[*] 正在通过标准 UI 悬停【批量更新订单信息】...")
-            menu_item = page.locator('li[data-customlink="批量更新订单信息"]').first
-            await menu_item.hover()
-            await asyncio.sleep(1)
-            
-            log("[*] 正在点击子菜单【更新订单基本信息】...")
-            # 同样使用 force=True 原生物理点击，防止在极端情况下因为动画没做完而被截胡
-            await menu_item.locator('text="更新订单基本信息"').first.click(force=True)
+            # 额外做个安全校验，如果弹窗没出来，尝试备用点击
+            try:
+                await page.wait_for_selector('#updateEmail', state='visible', timeout=4000)
+            except Exception:
+                log("[*] 警告：快速弹窗失败，尝试使用原生点击...")
+                batch_btn = page.locator('span.text.mr5.ml5:has-text("批处理功能")').filter(state="visible").first
+                if await batch_btn.count() > 0:
+                    await batch_btn.click(force=True)
+                    await asyncio.sleep(1)
+                
+                menu_item = page.locator('li[data-customlink="批量更新订单信息"]').filter(state="attached").first
+                if await menu_item.count() > 0:
+                    await menu_item.hover()
+                    await asyncio.sleep(1)
+                
+                sub_item = page.locator('a[onclick*="updateEmailShow"]').filter(state="attached").first
+                if await sub_item.count() > 0:
+                    await sub_item.click(force=True)
+                    
             await asyncio.sleep(2)
             
             # === 第五步：注入数据 ===

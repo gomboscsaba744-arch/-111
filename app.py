@@ -4,16 +4,68 @@ import asyncio
 import os
 import subprocess
 import glob
+import time
+import logging
+import warnings
+import streamlit.components.v1 as components
 
-from config import MODE1_EXCEL, MODE2_EXCEL, MODE3_EXCEL, MODE4_EXCEL, TELEGRAM_SESSION_DIR, DATA_DIR, DSERS_SESSION_DIR, DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV, SCRIPT_TEMPLATE, ORDER_TEMPLATE, SESSIONS_DIR
+# 静默三方库中英文冗余 Debug/Info 日志输出，保持终端纯净清爽
+warnings.filterwarnings("ignore")
+logging.basicConfig(level=logging.ERROR)
+for _logger_name in ["telethon", "playwright", "asyncio", "urllib3", "httpx", "httpcore", "PIL", "tornado", "streamlit"]:
+    logging.getLogger(_logger_name).setLevel(logging.ERROR)
+
+from config import (
+    MODE1_EXCEL, MODE2_EXCEL, MODE3_EXCEL, MODE4_EXCEL,
+    TELEGRAM_SESSION_DIR, DATA_DIR, DSERS_SESSION_DIR, MABANG_SESSION_DIR,
+    DIANXIAOMI_SESSION_DIR, DIANXIAOMI_SHOPS_CACHE,
+    DSERS_TEMPLATE, DSERS_IMPORT_XLSX, DSERS_IMPORT_CSV,
+    SCRIPT_TEMPLATE, ORDER_TEMPLATE, SESSIONS_DIR
+)
 from automators.telegram_cpf_bot import run_cpf_query
 from automators.dsers_update_bot import run_dsers_rename
 from automators.order_template_utils import clean_order_template_to_script, sync_cpf_results_to_order_template
+from automators.dianxiaomi_stock_bot import (
+    load_cached_shops, fetch_dianxiaomi_shops, run_dianxiaomi_stock_update
+)
+from automators.mabang_export_bot import run_mabang_export as run_mabang_cpf_export
+from automators.mabang_dsers_export import run_mabang_export as run_mabang_dsers_export
+from automators.mabang_update_bot import run_mabang_batch_update
+from automators.dsers_clean_and_map import run_dsers_clean_and_map
+from automators.dsers_cpf_bridge import export_to_cpf_template, merge_cpf_results
+from automators.dsers_import_bot import run_dsers_import
+from automators.task_manager import global_task_manager
 
 st.set_page_config(page_title="Global Pipeline Studio", layout="wide", initial_sidebar_state="collapsed")
 
+def _safe_param(key):
+    val = st.query_params.get(key, "")
+    if isinstance(val, list):
+        return val[0] if val else ""
+    return str(val) if val is not None else ""
+
+_relay_action = _safe_param("relay_action")
+_relay_task_id = _safe_param("relay_task_id")
+_url_route = _safe_param("route")
+
 if 'route' not in st.session_state:
-    st.session_state.route = None
+    st.session_state.route = _url_route if _url_route in ("A", "B") else None
+
+if _relay_action and _relay_task_id:
+    if _relay_action == "kill":
+        global_task_manager.cancel_task(_relay_task_id)
+    elif _relay_action == "pause":
+        global_task_manager.pause_task(_relay_task_id)
+    elif _relay_action == "resume":
+        global_task_manager.resume_task(_relay_task_id)
+    
+    st.query_params.clear()
+    if st.session_state.route:
+        st.query_params["route"] = st.session_state.route
+    st.rerun()
+
+if st.session_state.route and st.query_params.get("route") != st.session_state.route:
+    st.query_params["route"] = st.session_state.route
 
 @st.dialog("选择表格类型")
 def select_uploaded_template_dialog(file_buffer, file_id):
@@ -63,6 +115,562 @@ def on_dsers_normal_change():
     ]):
         st.session_state["sw_dsers_rename_key"] = False
 
+@st.fragment(run_every="2s")
+def render_live_task_hub():
+    tasks = global_task_manager.get_all_tasks()
+    active_tasks = global_task_manager.get_active_tasks()
+    active_count = len(active_tasks)
+    total_count = len(tasks)
+
+    # 1. 构造抽屉内任务列表的 HTML
+    task_items_html = ""
+    if not tasks:
+        task_items_html = """
+        <div style="text-align: center; color: #888888; padding: 3rem 1rem; font-size: 0.9rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+            暂无正在运行或历史任务记录
+        </div>
+        """
+    else:
+        for task in reversed(tasks):
+            action_req = getattr(task, 'action_required', None)
+            if not action_req and task.error:
+                import re
+                m = re.search(r'(?:需配置选项|需选择选项|需处理选项|需要选项|阻断拦截|店小秘拦截)[：:\s]+([^\n，。]+)', task.error)
+                if m:
+                    action_req = m.group(1).strip()
+                else:
+                    m2 = re.search(r'(请选择[^\n，。】\]]+)', task.error)
+                    if m2:
+                        action_req = m2.group(1).strip()
+
+            status_badge_style = {
+                "RUNNING": "background: rgba(52, 199, 89, 0.12); color: #248a3d; border: 1px solid rgba(52, 199, 89, 0.25);",
+                "PAUSED": "background: rgba(255, 149, 0, 0.12); color: #c97500; border: 1px solid rgba(255, 149, 0, 0.25);",
+                "SUCCESS": "background: rgba(0, 122, 255, 0.12); color: #007aff; border: 1px solid rgba(0, 122, 255, 0.25);",
+                "FAILED": "background: rgba(255, 59, 48, 0.12); color: #ff3b30; border: 1px solid rgba(255, 59, 48, 0.25);",
+                "CANCELLED": "background: rgba(142, 142, 147, 0.15); color: #8e8e93; border: 1px solid rgba(142, 142, 147, 0.3);"
+            }.get(task.status, "background: #eee; color: #666;")
+            
+            status_text = {
+                "RUNNING": "运行中",
+                "PAUSED": "已暂停",
+                "SUCCESS": "已完成",
+                "FAILED": "失败",
+                "CANCELLED": "已停止"
+            }.get(task.status, task.status)
+
+            if action_req:
+                if task.status == "FAILED":
+                    status_badge_style = "background: rgba(255, 59, 48, 0.15); color: #e11d48; border: 1px solid rgba(255, 59, 48, 0.35);"
+                    status_text = "待选选项"
+                elif task.status == "RUNNING":
+                    status_badge_style = "background: rgba(255, 149, 0, 0.15); color: #c97500; border: 1px solid rgba(255, 149, 0, 0.35);"
+                    status_text = "需选选项"
+            
+            logs = task.get_logs()
+            log_text = "\n".join(logs[-25:]) if logs else "正在初始化并启动独立运行环境..."
+            log_html_safe = log_text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+            # 彩色控制胶囊按钮 —— 使用 top-level window._vanguardHandleTaskAction 保证永远响应
+            actions_btn_html = ""
+            btn_pause_style = "background:rgba(255,149,0,0.12);color:#b45309;border:1px solid rgba(255,149,0,0.3);border-radius:6px;padding:4px 11px;font-size:0.74rem;font-weight:600;cursor:pointer;"
+            btn_resume_style = "background:rgba(52,199,89,0.12);color:#15803d;border:1px solid rgba(52,199,89,0.3);border-radius:6px;padding:4px 11px;font-size:0.74rem;font-weight:600;cursor:pointer;"
+            btn_stop_style = "background:rgba(255,59,48,0.10);color:#e11d48;border:1px solid rgba(255,59,48,0.28);border-radius:6px;padding:4px 11px;font-size:0.74rem;font-weight:600;cursor:pointer;"
+
+            if task.status == "RUNNING":
+                actions_btn_html += f"""<button type="button" onclick="window.parent._vanguardHandleTaskAction('pause', '{task.task_id}')" style="{btn_pause_style}">⏸ 暂停</button>"""
+                actions_btn_html += f"""<button type="button" onclick="window.parent._vanguardHandleTaskAction('kill', '{task.task_id}')" style="{btn_stop_style}">✕ 停止</button>"""
+            elif task.status == "PAUSED":
+                actions_btn_html += f"""<button type="button" onclick="window.parent._vanguardHandleTaskAction('resume', '{task.task_id}')" style="{btn_resume_style}">▶ 继续</button>"""
+                actions_btn_html += f"""<button type="button" onclick="window.parent._vanguardHandleTaskAction('kill', '{task.task_id}')" style="{btn_stop_style}">✕ 停止</button>"""
+
+            action_banner_html = ""
+            if action_req:
+                action_banner_html = f"""
+                <div style="background: rgba(255, 59, 48, 0.08); border: 1px solid rgba(255, 59, 48, 0.25); border-left: 4px solid #ff3b30; border-radius: 8px; padding: 7px 11px; margin: 0.45rem 0 0.4rem 0; font-size: 0.78rem; line-height: 1.45;">
+                    <div style="display: flex; align-items: center; gap: 0.35rem; font-weight: 700; color: #d70015; margin-bottom: 2px;">
+                        <span>⚠️</span>
+                        <span>任务阻断提示（需人工选择选项）</span>
+                    </div>
+                    <div style="color: #1d1d1f; font-weight: 600; padding-left: 1.25rem;">
+                        👉 <strong>所需选项：</strong><span style="color: #b91c1c; background: rgba(255, 59, 48, 0.12); padding: 1px 6px; border-radius: 4px;">{action_req}</span>
+                    </div>
+                </div>
+                """
+
+            err_html = f"<div style='color:#ff3b30;font-size:0.78rem;margin-top:0.3rem;'>{task.error}</div>" if (task.error and not action_req) else ""
+            now_ms = time.time() * 1000
+            accumulated_sec = task.get_duration_seconds()
+
+            # 简明数字进度 (如: 15/120 条 或 30/50 件)
+            progress_text = getattr(task, 'progress_text', '')
+            progress_html = f"""<span style="font-size:0.75rem;font-weight:700;color:#0071e3;background:rgba(0,113,227,0.08);border:1px solid rgba(0,113,227,0.18);padding:1px 7px;border-radius:6px;">⚡ {progress_text}</span>""" if progress_text else ""
+
+            # 动态进度条
+            progress_pct = getattr(task, 'progress_percent', 0.0)
+            if task.total_progress > 0 and task.current_progress > 0:
+                progress_pct = min(100.0, max(0.0, round(task.current_progress / task.total_progress * 100, 1)))
+            progress_bar_html = f"""
+            <div style="background: rgba(0,0,0,0.06); border-radius: 9999px; height: 5px; width: 100%; overflow: hidden; margin: 0.35rem 0 0.15rem 0;">
+                <div style="background: linear-gradient(90deg, #007aff, #34c759); height: 100%; width: {progress_pct}%; border-radius: 9999px; transition: width 0.4s ease;"></div>
+            </div>
+            """ if (task.total_progress > 0) else ""
+
+            task_items_html += f"""
+            <div style="background:rgba(255,255,255,0.88);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.95);border-radius:12px;padding:0.9rem;margin-bottom:0.8rem;box-shadow:0 2px 12px rgba(0,0,0,0.03);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem;">
+                    <span style="font-size:0.72rem;font-weight:700;color:#555;background:#eef1f6;padding:2px 6px;border-radius:4px;">{task.category}</span>
+                    <div style="display:flex;align-items:center;gap:0.4rem;">
+                        <span style="font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:9999px;{status_badge_style}">{status_text}</span>
+                        {actions_btn_html}
+                    </div>
+                </div>
+                <div style="font-size:0.88rem;font-weight:600;color:#1d1d1f;margin-bottom:0.35rem;word-break:break-all;">{task.name}</div>
+                {action_banner_html}
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.2rem;">
+                    <div class="vanguard-task-timer" data-render-time="{now_ms}" data-accumulated-sec="{accumulated_sec}" data-status="{task.status}" style="font-size:0.75rem;color:#888;">耗时: {task.get_duration_str()}</div>
+                    {progress_html}
+                </div>
+                {progress_bar_html}
+                {err_html}
+                <details style="margin-top:0.35rem;font-size:0.75rem;">
+                    <summary style="cursor:pointer;color:#007aff;font-weight:500;">查看实时日志 ({len(logs)}行)</summary>
+                    <pre style="background:#1e1e1e;color:#f0f0f0;padding:0.6rem;border-radius:6px;font-size:0.7rem;max-height:160px;overflow-y:auto;margin-top:0.4rem;white-space:pre-wrap;word-break:break-all;">{log_html_safe}</pre>
+                </details>
+            </div>
+            """
+
+    has_action_needed = any(getattr(t, 'action_required', None) for t in tasks if t.status in ("RUNNING", "FAILED", "PAUSED"))
+    pulse_anim = """<span style="width: 8px; height: 8px; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 8px #ff3b30; display: inline-block; animation: vPulse 1.2s infinite;"></span>""" if has_action_needed else ("""<span style="width: 8px; height: 8px; border-radius: 50%; background: #34c759; box-shadow: 0 0 8px #34c759; display: inline-block; animation: vPulse 1.5s infinite;"></span>""" if active_count > 0 else """<span style="width: 8px; height: 8px; border-radius: 50%; background: #8e8e93; display: inline-block;"></span>""")
+    action_warn_tag = """<span style="font-size: 0.72rem; font-weight: 700; color: #ffffff; background: #ff3b30; padding: 2px 7px; border-radius: 9999px;">需处理</span>""" if has_action_needed else ""
+
+    drawer_script = f"""
+    <script>
+    (function() {{
+        const parentDoc = window.parent.document;
+        
+        // 1. 创建或更新右上角常驻浮动触发胶囊
+        let trigger = parentDoc.getElementById("vanguard-task-trigger");
+        if (!trigger) {{
+            trigger = parentDoc.createElement("div");
+            trigger.id = "vanguard-task-trigger";
+            trigger.style.cssText = "position: fixed; top: 1.2rem; right: 1.5rem; z-index: 999999; background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(24px) saturate(140%); -webkit-backdrop-filter: blur(24px) saturate(140%); border: 1px solid rgba(255, 255, 255, 0.95); border-radius: 9999px; padding: 0.45rem 1.1rem; box-shadow: 0 4px 18px rgba(0,0,0,0.08), inset 0 1px 1px #fff; cursor: pointer; display: flex; align-items: center; gap: 0.55rem; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);";
+            parentDoc.body.appendChild(trigger);
+        }}
+        trigger.innerHTML = `
+            {pulse_anim}
+            <span style="font-size: 0.86rem; font-weight: 600; color: #1d1d1f; letter-spacing: 0.01em;">任务看板</span>
+            {action_warn_tag}
+            <span style="font-size: 0.74rem; font-weight: 700; color: #ffffff; background: #1d1d1f; padding: 2px 7px; border-radius: 9999px;">{active_count}</span>
+        `;
+        trigger.onmouseover = () => {{ trigger.style.transform = "translateY(-2px) scale(1.03)"; trigger.style.boxShadow = "0 8px 24px rgba(0,0,0,0.12), inset 0 1px 1px #fff"; }};
+        trigger.onmouseout = () => {{ trigger.style.transform = "translateY(0) scale(1)"; trigger.style.boxShadow = "0 4px 18px rgba(0,0,0,0.08), inset 0 1px 1px #fff"; }};
+
+        // 2. 创建遮罩层与抽屉面板
+        let overlay = parentDoc.getElementById("vanguard-task-overlay");
+        if (!overlay) {{
+            overlay = parentDoc.createElement("div");
+            overlay.id = "vanguard-task-overlay";
+            // 首次创建时初始化为隐藏；fragment 刷新时 overlay 已存在则保留其当前显示状态，
+            // 防止 run_every=2s 重渲染时将已显示的遮罩层错误重置为 pointer-events:none
+            overlay.style.cssText = "position: fixed; inset: 0; background: rgba(0, 0, 0, 0.2); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 9999998; opacity: 0; pointer-events: none; transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);";
+            parentDoc.body.appendChild(overlay);
+        }}
+
+        let drawer = parentDoc.getElementById("vanguard-task-drawer");
+        const savedDrawerOpen = window.parent.sessionStorage.getItem('vanguard_task_drawer_open') === 'true';
+        const wasOpen = (drawer ? (drawer.getAttribute("data-is-open") === "true") : false) || savedDrawerOpen;
+
+        if (savedDrawerOpen) {{
+            window.parent.sessionStorage.removeItem('vanguard_task_drawer_open');
+        }}
+
+        let scrollPos = 0;
+        let openLogs = [];
+        if (drawer) {{
+            const contentDiv = drawer.querySelector('.vanguard-drawer-content');
+            if (contentDiv) {{
+                scrollPos = contentDiv.scrollTop;
+                drawer.querySelectorAll('details').forEach((d, idx) => {{
+                    if (d.open) openLogs.push(idx);
+                }});
+            }}
+        }}
+
+        if (!drawer) {{
+            drawer = parentDoc.createElement("div");
+            drawer.id = "vanguard-task-drawer";
+            drawer.setAttribute("data-is-open", "false");
+            drawer.style.cssText = "position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 90vw; background: rgba(255, 255, 255, 0.90); backdrop-filter: blur(40px) saturate(160%); -webkit-backdrop-filter: blur(40px) saturate(160%); border-left: 1px solid rgba(255, 255, 255, 0.95); box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1); z-index: 9999999; transform: translateX(100%); transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;";
+            parentDoc.body.appendChild(drawer);
+        }}
+
+        drawer.innerHTML = `
+            <div style="padding: 1.2rem 1.4rem; border-bottom: 1px solid rgba(0,0,0,0.06); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #1d1d1f;">任务运行看板</div>
+                    <div style="font-size: 0.78rem; color: #888; margin-top: 2px;">共 {total_count} 条记录 · {active_count} 个运行中</div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <button id="vanguard-btn-drawer-refresh" style="background: rgba(0,0,0,0.05); border: none; border-radius: 6px; padding: 5px 10px; font-size: 0.78rem; font-weight: 600; color: #1d1d1f; cursor: pointer;">刷新</button>
+                    <button id="vanguard-btn-drawer-close" style="width: 32px; height: 32px; border-radius: 50%; background: rgba(0,0,0,0.06); border: none; font-size: 1.1rem; color: #555; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">✕</button>
+                </div>
+            </div>
+             <div class="vanguard-drawer-content" style="padding:1.2rem;flex:1;overflow-y:auto;">
+                {task_items_html}
+            </div>
+        `;
+
+        if (scrollPos > 0) {{
+            const newContentDiv = drawer.querySelector('.vanguard-drawer-content');
+            if (newContentDiv) newContentDiv.scrollTop = scrollPos;
+        }}
+        if (openLogs.length > 0) {{
+            drawer.querySelectorAll('details').forEach((d, idx) => {{
+                if (openLogs.includes(idx)) d.open = true;
+            }});
+        }}
+
+        // ── 任务控制全局函数（直接触发 Streamlit 原生 Relay 按钮，突破 iframe sandbox 限制）──
+        window.parent._vanguardHandleTaskAction = function(action, taskId) {{
+            if (!action || !taskId) return;
+            try {{
+                window.parent.sessionStorage.setItem('vanguard_task_drawer_open', 'true');
+            }} catch(e) {{}}
+            
+            const targetTag = action.toUpperCase() + '_TASK_' + taskId;
+            const buttons = Array.from(parentDoc.querySelectorAll('button'));
+            const match = buttons.find(b => (b.textContent || '').trim() === targetTag);
+            if (match) {{
+                match.click();
+            }}
+        }};
+
+        // 绑定展开与关闭动作
+        const openDrawer = () => {{
+            drawer.setAttribute("data-is-open", "true");
+            drawer.style.transform = "translateX(0)";
+            overlay.style.opacity = "1";
+            overlay.style.pointerEvents = "auto";
+        }};
+        const closeDrawer = () => {{
+            try {{
+                window.parent.sessionStorage.removeItem('vanguard_task_drawer_open');
+            }} catch(e) {{}}
+            drawer.setAttribute("data-is-open", "false");
+            drawer.style.transform = "translateX(100%)";
+            overlay.style.opacity = "0";
+            overlay.style.pointerEvents = "none";
+        }};
+
+        if (wasOpen) {{
+            drawer.setAttribute("data-is-open", "true");
+            drawer.style.transform = "translateX(0)";
+            overlay.style.opacity = "1";
+            overlay.style.pointerEvents = "auto";
+        }}
+
+        trigger.onclick = (e) => {{ e.preventDefault(); openDrawer(); }};
+        overlay.onclick = () => {{ closeDrawer(); }};
+        const closeBtn = drawer.querySelector("#vanguard-btn-drawer-close");
+        if (closeBtn) closeBtn.onclick = () => {{ closeDrawer(); }};
+
+        // 刷新看板：直接刷新页面
+        const refreshBtn = drawer.querySelector("#vanguard-btn-drawer-refresh");
+        if (refreshBtn) {{
+            refreshBtn.onclick = (e) => {{
+                e.preventDefault();
+                e.stopPropagation();
+                parentDoc.location.reload();
+            }};
+        }}
+
+        // 客户端高精度秒级计时器 (仅对 RUNNING 状态动态计时，PAUSED 状态严格冻结不增加)
+        if (window.parent._vanguardTimerTicker) {{
+            clearInterval(window.parent._vanguardTimerTicker);
+        }}
+        window.parent._vanguardTimerTicker = setInterval(() => {{
+            const timerEls = parentDoc.querySelectorAll('.vanguard-task-timer[data-status="RUNNING"]');
+            const now = Date.now();
+            timerEls.forEach(el => {{
+                const renderTs = parseFloat(el.getAttribute('data-render-time') || '0');
+                const baseSec = parseFloat(el.getAttribute('data-accumulated-sec') || '0');
+                if (renderTs > 0) {{
+                    const diffSec = baseSec + Math.max(0, Math.floor((now - renderTs) / 1000));
+                    const m = Math.floor(diffSec / 60).toString().padStart(2, '0');
+                    const s = (diffSec % 60).toString().padStart(2, '0');
+                    el.textContent = `耗时: ${{m}}:${{s}}`;
+                }}
+            }});
+        }}, 1000);
+
+        // 隐藏任务中继控制按钮
+        parentDoc.querySelectorAll('button').forEach(btn => {{
+            const txt = (btn.textContent || '').trim();
+            if (txt.startsWith('KILL_TASK_') || txt.startsWith('PAUSE_TASK_') || txt.startsWith('RESUME_TASK_')) {{
+                const el = btn.closest('[data-testid="stElementContainer"]') || btn;
+                el.style.position = 'fixed';
+                el.style.top = '-9999px';
+                el.style.left = '-9999px';
+                el.style.opacity = '0';
+                el.style.height = '0';
+                el.style.pointerEvents = 'none';
+            }}
+        }});
+    }})();
+    </script>
+    """
+    components.html(drawer_script, height=0, width=0)
+
+    # 任务控制原生中继按钮（与抽屉中彩色胶囊按钮一一绑定，通过 WebSocket 即时处理）
+    for t in tasks:
+        if t.status in ("RUNNING", "PAUSED"):
+            if st.button(f"PAUSE_TASK_{t.task_id}", key=f"btn_pause_relay_{t.task_id}"):
+                global_task_manager.pause_task(t.task_id)
+                st.rerun()
+            if st.button(f"RESUME_TASK_{t.task_id}", key=f"btn_resume_relay_{t.task_id}"):
+                global_task_manager.resume_task(t.task_id)
+                st.rerun()
+            if st.button(f"KILL_TASK_{t.task_id}", key=f"btn_kill_relay_{t.task_id}"):
+                global_task_manager.cancel_task(t.task_id)
+                st.rerun()
+
+
+
+def render_dianxiaomi_stock_module(key_prefix: str = "main"):
+    with st.container(border=True):
+        st.markdown("### 店小秘在线商品库存修改")
+
+        shops = load_cached_shops()
+        shop_options = [f"[{s['shortName']}] {s['text']}" for s in shops]
+        shop_codes = [s['code'] for s in shops]
+
+        # 默认自动匹配并选中 k店 与 o店
+        default_indices = []
+        for i, s in enumerate(shops):
+            if s.get('firstLetter') in ['k', 'o'] or 'k店' in s.get('shortName', '') or 'o店' in s.get('shortName', ''):
+                default_indices.append(i)
+        if not default_indices and len(shop_options) > 0:
+            default_indices = [0, 1] if len(shop_options) > 1 else [0]
+
+        selected_indices = st.multiselect(
+            "目标店铺 (支持多选，系统将同时开启多个网页并发修改)",
+            range(len(shop_options)),
+            default=default_indices,
+            format_func=lambda i: shop_options[i],
+            key=f"{key_prefix}_dxm_shop_idx"
+        )
+
+        col_num, col_btn = st.columns([1, 1])
+        with col_num:
+            target_stock_val = st.number_input(
+                "修改库存为",
+                min_value=0,
+                max_value=999999,
+                value=0,
+                step=1,
+                key=f"{key_prefix}_dxm_stock_val"
+            )
+
+        with col_btn:
+            st.markdown("<div style='height: 1.72rem;'></div>", unsafe_allow_html=True)
+            st.markdown(f"""
+            <div class="compact-action-outer compact-primary" id="visual-btn-dxm-{key_prefix}" style="margin-top: 0 !important; margin-bottom: 0 !important; min-height: 60px !important;">
+                <div class="compact-action-inner" style="padding: 0.4rem 1.2rem !important;">
+                    <div class="compact-btn-left">
+                        <div class="compact-btn-icon">⚡</div>
+                        <div class="compact-btn-title" style="font-size: 0.95rem !important;">批量修改店铺库存</div>
+                    </div>
+                    <div class="compact-island">
+                        <span class="compact-island-text">BATCH UPDATE</span>
+                        <span class="compact-island-circle">↗</span>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            btn_dxm_run = st.button(f"RELAY_BTN_DXM_{key_prefix.upper()}", key=f"btn_dxm_relay_{key_prefix}")
+
+        if btn_dxm_run:
+            if not selected_indices:
+                st.warning("请至少选择一个目标店铺。")
+            else:
+                for idx, s_idx in enumerate(selected_indices):
+                    shop_code = shop_codes[s_idx]
+                    shop_name = shop_options[s_idx]
+                    task_id = f"dxm_{int(time.time())}_{idx}"
+                    global_task_manager.submit_task(
+                        task_id=task_id,
+                        name=f"店小秘改库存 - {shop_name[:18]}",
+                        target_fn=run_dianxiaomi_stock_update,
+                        kwargs={
+                            "shop_code": shop_code,
+                            "target_stock": int(target_stock_val),
+                            "user_data_dir": DIANXIAOMI_SESSION_DIR,
+                            "worker_id": str(idx),
+                            "headless": False
+                        },
+                        category="店小秘"
+                    )
+                st.toast(f"已同时在后台启动 {len(selected_indices)} 个店铺的库存修改任务", icon=None)
+                st.rerun()
+
+def execute_pipeline_task(
+    route: str,
+    sw_auto_export: bool,
+    days: int,
+    hours: int,
+    search_val: str,
+    current_excel_path: str,
+    active_template_type: str,
+    sw_cpf_rename: bool,
+    sw_cpf_merge: bool,
+    sw_mabang_update: bool,
+    sw_dsers_clean: bool,
+    sw_dsers_cpf_check: bool,
+    sw_dsers_cpf_merge: bool,
+    sw_dsers_mabang: bool,
+    sw_dsers_import: bool,
+    sw_dsers_rename: bool,
+    use_vault: bool,
+    vault_file_choice: str,
+    progress_callback = None,
+    task_info = None
+):
+    def log(msg):
+        print(msg, flush=True)
+        if task_info:
+            task_info.check_pause()
+        if progress_callback:
+            progress_callback(msg)
+
+    pipeline_name = "CPF 订单核对" if route == "A" else "DSERS 批量下单"
+    log(f"🚀 开始执行流水线：{pipeline_name}")
+
+    # 清洗残余单例锁
+    for lock_file in glob.glob(os.path.join(SESSIONS_DIR, "*", "Singleton*")):
+        try: os.remove(lock_file)
+        except: pass
+
+    if task_info: task_info.check_pause()
+
+    # 下单模板清洗与映射
+    if active_template_type == "下单模板.xlsx":
+        is_rename_active = (route == "B" and sw_dsers_rename)
+        clean_order_template_to_script(ORDER_TEMPLATE, SCRIPT_TEMPLATE, route, sw_dsers_rename=is_rename_active)
+        current_excel_path = SCRIPT_TEMPLATE
+        try:
+            import pandas as pd
+            if os.path.exists(SCRIPT_TEMPLATE):
+                df_init = pd.read_excel(SCRIPT_TEMPLATE)
+                if len(df_init) > 0 and task_info:
+                    task_info.total_progress = len(df_init)
+                    task_info.progress_text = f"共 {len(df_init)} 条订单"
+        except Exception:
+            pass
+
+    # 阶段 1：马帮 ERP 导出 (原生运行，实时支持暂停与继续)
+    if sw_auto_export:
+        if task_info: task_info.check_pause()
+        log("[阶段 1/4] 正在调取马帮 ERP 订单数据..." if route == "A" else "[阶段 1/5] 正在调取马帮 ERP 订单数据...")
+        if route == "A":
+            task_info.run_async(run_mabang_cpf_export(
+                MABANG_SESSION_DIR,
+                days=days,
+                hours=hours,
+                customer_id=search_val,
+                headless=False,
+                progress_callback=log,
+                task_info=task_info
+            ))
+        else:
+            task_info.run_async(run_mabang_dsers_export(
+                MABANG_SESSION_DIR,
+                days=days,
+                hours=hours,
+                sku_val=search_val,
+                headless=False,
+                progress_callback=log,
+                task_info=task_info
+            ))
+        log("[阶段 1] 马帮订单数据提取完成。")
+        current_excel_path = SCRIPT_TEMPLATE
+
+    # 阶段 2：管线专属执行
+    if route == "A":
+        if sw_cpf_rename:
+            if task_info: task_info.check_pause()
+            log("[阶段 2/4] 正在进行 Telegram CPF 姓名查询...")
+            task_info.run_async(run_cpf_query(current_excel_path, TELEGRAM_SESSION_DIR, False, lambda m: log(f"[TG 实时] {m}"), task_info=task_info))
+            log("[阶段 2] Telegram 查名与校验完成。")
+            
+            if active_template_type == "下单模板.xlsx":
+                log("[同步] 正在同步最新姓名至下单模板 E 列...")
+                sync_cpf_results_to_order_template(SCRIPT_TEMPLATE, ORDER_TEMPLATE)
+                log("[同步] 下单模板 E 列已更新完成。")
+                
+        if sw_cpf_merge:
+            if task_info: task_info.check_pause()
+            log("[阶段 3/4] 独立同步：回填最新姓名至 DSers 导入模板...")
+            merge_cpf_results(progress_callback=log)
+            log("[阶段 3] 独立同步完成，DSers 订单姓名已更新。")
+
+        if sw_mabang_update:
+            if task_info: task_info.check_pause()
+            log("[阶段 4/4] 正在同步数据至马帮 ERP...")
+            task_info.run_async(run_mabang_batch_update(current_excel_path, MABANG_SESSION_DIR, headless=False, progress_callback=log, task_info=task_info))
+            log("[阶段 4] 马帮 ERP 数据同步完成。")
+
+    else: # Route B
+        if sw_dsers_clean:
+            if task_info: task_info.check_pause()
+            log("[阶段 2/5] 正在清理数据字段并映射格式...")
+            run_dsers_clean_and_map(progress_callback=log)
+            log("[阶段 2] 数据清理与格式映射完成。")
+                
+        if sw_dsers_cpf_check:
+            if task_info: task_info.check_pause()
+            log("[阶段 3/5] 姓名核对 1/2: 提取 DSers 订单至 CPF 模板...")
+            if use_vault and vault_file_choice == "脚本模板.xlsx":
+                log("[阶段 3/5] 姓名核对 1/2: (已从脚本模板继续，跳过桥接提取)")
+            else:
+                export_to_cpf_template(progress_callback=log)
+                
+            log("[阶段 3/5] 姓名核对 2/2: 正在通过 Telegram 进行姓名校对...")
+            task_info.run_async(run_cpf_query(SCRIPT_TEMPLATE, TELEGRAM_SESSION_DIR, False, lambda m: log(f"[TG 实时] {m}"), task_info=task_info))
+            
+            if active_template_type == "下单模板.xlsx":
+                log("[同步] 正在同步最新姓名至下单模板 E 列...")
+                sync_cpf_results_to_order_template(SCRIPT_TEMPLATE, ORDER_TEMPLATE)
+                log("[同步] 下单模板 E 列已更新完成。")
+                
+        if sw_dsers_cpf_merge:
+            if task_info: task_info.check_pause()
+            log("[阶段 3.5/5] 正在同步真实姓名至 DSers 导入模板...")
+            merge_cpf_results(progress_callback=log)
+            log("[阶段 3.5] 姓名同步完成，所有 DSers 订单姓名已更新。")
+            
+        if sw_dsers_mabang:
+            if task_info: task_info.check_pause()
+            log("[阶段 4/5] 正在同步真实姓名至马帮 ERP...")
+            task_info.run_async(run_mabang_batch_update(SCRIPT_TEMPLATE, MABANG_SESSION_DIR, headless=False, progress_callback=log, task_info=task_info))
+            log("[阶段 4] 马帮 ERP 数据同步完成。")
+                
+        if sw_dsers_import:
+            if task_info: task_info.check_pause()
+            log("[阶段 5/5] 正在向 DSers 批量创建与推送订单...")
+            task_info.run_async(run_dsers_import(DSERS_IMPORT_CSV, DSERS_SESSION_DIR, headless=False, progress_callback=log, task_info=task_info))
+            log("[阶段 5] 批量上传并创建 DSers 订单成功。")
+
+        if sw_dsers_rename:
+            if task_info: task_info.check_pause()
+            log("[阶段 独立] 正在处理 DSers 网页端订单自动改名...")
+            task_info.run_async(run_dsers_rename(current_excel_path, DSERS_SESSION_DIR, False, lambda m: log(f"[DSers 实时] {m}"), task_info=task_info))
+            log("[阶段 独立] DSers 订单网页改名处理完成。")
+
+    log(f"🎉 {pipeline_name} 流水线全部步骤执行完毕！")
+
+
 # COMMON CSS (High-end Minimalist, High Transparency Glassmorphism)
 st.markdown("""
 <style>
@@ -72,10 +680,143 @@ st.markdown("""
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
     }
 
-    /* 绝对隐藏侧边栏和顶栏 */
-    [data-testid="collapsedControl"] { display: none !important; }
-    [data-testid="stSidebar"] { display: none !important; }
-    header { visibility: hidden !important; }
+    /* =========================================
+       苹果原生级：彻底统一规范所有输入框与下拉选择框（消除任何内胆断层与多重重影）
+       ========================================= */
+    /* 1. 最外层完整容器：单一完整圆角白底胶囊（涵盖文本、数字加减按钮全区、下拉列表） */
+    [data-testid="stTextInput"] div[data-baseweb="input"],
+    [data-testid="stNumberInput"] > div:has(input),
+    [data-testid="stNumberInput"] > div[class*="eaba2yi0"],
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div {
+        background: rgba(255, 255, 255, 0.95) !important;
+        background-color: rgba(255, 255, 255, 0.95) !important;
+        border: 1px solid rgba(0, 0, 0, 0.14) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+        overflow: hidden !important;
+    }
+
+    /* 2. 强力清除所有内部子元素（数字输入框内胆、按钮容器、select 外壳等）的自带边框、圆角、背景与阴影 */
+    [data-testid="stNumberInput"] div[data-baseweb="input"],
+    [data-testid="stNumberInput"] div[data-baseweb="base-input"],
+    [data-testid="stNumberInput"] div[class*="eaba2yi1"],
+    [data-testid="stTextInput"] div[data-baseweb="base-input"],
+    [data-testid="stSelectbox"] div[data-baseweb="select"],
+    [data-testid="stMultiSelect"] div[data-baseweb="select"],
+    div[data-baseweb="base-input"] {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        background-color: transparent !important;
+        border-radius: 0 !important;
+        outline: none !important;
+    }
+
+    /* 3. 内部原生 input 文本：全透明无边框无圆角 */
+    [data-testid="stNumberInput"] input,
+    [data-testid="stTextInput"] input,
+    div[data-baseweb="input"] input,
+    div[data-baseweb="base-input"] input {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        outline: none !important;
+        color: #1d1d1f !important;
+        -webkit-text-fill-color: #1d1d1f !important;
+        font-size: 0.95rem !important;
+        padding-left: 0.8rem !important;
+    }
+
+    /* 4. 数字输入框的加减按钮：平整通透，无独立背景与多余边框 */
+    [data-testid="stNumberInput"] button {
+        background: transparent !important;
+        background-color: transparent !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        color: #1d1d1f !important;
+        width: 32px !important;
+        height: 100% !important;
+    }
+    [data-testid="stNumberInput"] button:hover {
+        background: rgba(0, 0, 0, 0.05) !important;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    /* 4. 修复开关（Toggle）颜色为苹果官方极简石墨黑 / 经典优雅微晶质感，彻底移除廉价刺眼蓝 */
+    div[data-testid="stToggle"] label span[role="checkbox"][aria-checked="true"],
+    div[data-testid="stCheckbox"] label span[role="checkbox"][aria-checked="true"],
+    div[data-baseweb="toggle"] div[aria-checked="true"],
+    [data-testid="stToggle"] div[role="checkbox"][aria-checked="true"] {
+        background-color: #1d1d1f !important;
+        background: #1d1d1f !important;
+    }
+
+    /* 下拉选择弹出层背景与文字颜色 */
+    div[data-baseweb="popover"],
+    ul[data-baseweb="menu"],
+    li[data-baseweb="menu-item"] {
+        background-color: #ffffff !important;
+        background: #ffffff !important;
+        color: #1d1d1f !important;
+    }
+    li[data-baseweb="menu-item"]:hover {
+        background-color: #f2f2f7 !important;
+    }
+
+    /* 所有标签文字颜色强制为经典深深灰 (#1d1d1f) */
+    label, [data-testid="stWidgetLabel"] p, [data-testid="stMarkdownContainer"] p {
+        color: #1d1d1f !important;
+    }
+
+    /* 彻底隐藏 Streamlit 原生侧边栏与顶栏，杜绝白线与残留交互 */
+    [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapsedControl"],
+    section[data-testid="stSidebar"],
+    [data-testid="stSidebar"],
+    header {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        flex-direction: row !important;
+    }
+
+    /* 多选框选中的标签：具有明显对比度的精致灰白毛玻璃芯片（Apple Chip 风格） */
+    div[data-baseweb="tag"],
+    span[data-baseweb="tag"],
+    [data-testid="stMultiSelect"] div[data-baseweb="tag"],
+    [data-testid="stMultiSelect"] span[data-baseweb="tag"] {
+        background: #eef1f6 !important;
+        border: 1px solid #d4d9e2 !important;
+        border-radius: 6px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+        padding: 3px 8px !important;
+        margin: 2px !important;
+    }
+    div[data-baseweb="tag"] span,
+    div[data-baseweb="tag"] div,
+    [data-testid="stMultiSelect"] span,
+    [data-testid="stMultiSelect"] div {
+        color: #1d1d1f !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="tag"] svg {
+        fill: #666666 !important;
+        color: #666666 !important;
+    }
+    div[data-baseweb="tag"] svg:hover {
+        fill: #1d1d1f !important;
+    }
 
     /* =========================================
        VISION PRO 级：空间计算 3D 极致动态引擎 (Spatial Computing Engine)
@@ -414,7 +1155,8 @@ try:
 except Exception as e:
     pass
 
-
+# 侧边栏全局后台任务中枢
+render_live_task_hub()
 
 if st.session_state.route is None:
     # ==========================
@@ -458,7 +1200,7 @@ if st.session_state.route is None:
     
     with col1:
         st.markdown("""
-        <div class="premium-card-outer" style="animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0;">
+        <div class="premium-card-outer" id="home-card-cpf" style="animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards; opacity: 0; cursor: pointer;">
             <div class="premium-card-inner">
                 <div>
                     <div class="card-icon-wrapper">A</div>
@@ -476,13 +1218,13 @@ if st.session_state.route is None:
             </div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("CPF_ROUTE_HIDDEN_123"):
+        if st.button("CPF_ROUTE_HIDDEN_123", key="btn_home_cpf_relay"):
             st.session_state.route = "A"
             st.rerun()
             
     with col2:
         st.markdown("""
-        <div class="premium-card-outer" style="animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0;">
+        <div class="premium-card-outer" id="home-card-dsers" style="animation: liquidReveal 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards; opacity: 0; cursor: pointer;">
             <div class="premium-card-inner">
                 <div>
                     <div class="card-icon-wrapper">B</div>
@@ -500,55 +1242,66 @@ if st.session_state.route is None:
             </div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("DSERS_ROUTE_HIDDEN_123"):
+        if st.button("DSERS_ROUTE_HIDDEN_123", key="btn_home_dsers_relay"):
             st.session_state.route = "B"
             st.rerun()
 
     # ==========================
-    # 彻底解决点击问题：JS 事件透传引擎
+    # 彻底解决点击问题：JS 精准中继穿透引擎
     # ==========================
     import streamlit.components.v1 as components
     components.html("""
     <script>
-        // 监听顶级 window，跨 iframe 穿透
         const parentDoc = window.parent.document;
-        
-        // 由于 Streamlit 组件加载存在微小延迟，使用轮询确保绑定成功
         let attempts = 0;
         const bindClicks = setInterval(() => {
             attempts++;
-            const cards = parentDoc.querySelectorAll('.premium-card-outer');
-            const buttons = parentDoc.querySelectorAll('button[kind="secondary"]');
             
-            // 确保找到了两个卡片和足够的按钮
-            if (cards.length >= 2 && buttons.length >= 2) {
-                clearInterval(bindClicks);
-                
-                cards.forEach((card, index) => {
-                    // 只绑定前两个主页卡片
-                    if (index > 1) return; 
-                    
-                    // 确保光标为手型
+            const cardCpf = parentDoc.getElementById('home-card-cpf');
+            const cardDsers = parentDoc.getElementById('home-card-dsers');
+            
+            const findRelayBtn = (textTag) => {
+                const allBtns = parentDoc.querySelectorAll('button');
+                for (let btn of allBtns) {
+                    if (btn.textContent && btn.textContent.includes(textTag)) {
+                        let container = btn.closest('.element-container') || btn.closest('[data-testid="stButton"]') || btn;
+                        container.style.setProperty('display', 'none', 'important');
+                        container.style.setProperty('position', 'absolute', 'important');
+                        container.style.setProperty('opacity', '0', 'important');
+                        container.style.setProperty('height', '0', 'important');
+                        container.style.setProperty('pointer-events', 'none', 'important');
+                        return btn;
+                    }
+                }
+                return null;
+            };
+            
+            const bindHomeAction = (cardId, textTag) => {
+                const card = parentDoc.getElementById(cardId);
+                if (card) {
                     card.style.cursor = 'pointer';
-                    
-                    // 移除旧监听器避免重复绑定
-                    card.onclick = null; 
-                    
-                    card.onclick = function(e) {
+                    card.onclick = (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        // 触发对应按钮的点击
-                        // Streamlit 的最新按钮可能在深层，直接对其原生节点 dispatchEvent
-                        const btn = buttons[index];
-                        btn.click();
+                        const liveBtn = findRelayBtn(textTag);
+                        if (liveBtn) {
+                            liveBtn.click();
+                        }
                     };
-                });
+                }
+            };
+            
+            bindHomeAction('home-card-cpf', 'CPF_ROUTE_HIDDEN_123');
+            bindHomeAction('home-card-dsers', 'DSERS_ROUTE_HIDDEN_123');
+            
+            const btnCpf = findRelayBtn('CPF_ROUTE_HIDDEN_123');
+            const btnDsers = findRelayBtn('DSERS_ROUTE_HIDDEN_123');
+            if (btnCpf && btnDsers) {
+                clearInterval(bindClicks);
             }
             
-            // 超时保护
-            if (attempts > 20) {
+            if (attempts > 30) {
                 clearInterval(bindClicks);
-                console.error("Vanguard Pipeline: JS Click Binding Failed");
             }
         }, 100);
     </script>
@@ -791,18 +1544,31 @@ else:
             transform: translateX(-4px) !important;
         }
 
-        /* 统一完全隐藏作为事件中继的 Streamlit 原生按钮（标准 CSS 语法，0ms 瞬间隐藏，绝不影响保存修改弹窗） */
-        div[data-testid="stButton"]:not(div[role="dialog"] div[data-testid="stButton"]),
-        div[class*="stButton"]:not(div[role="dialog"] div[class*="stButton"]) {
-            display: none !important;
-            position: absolute !important;
+        /* 统一完全隐藏作为事件中继的 Streamlit 原生 Relay 按钮容器（不使用 display:none 以确保 JS 可程序化点击触发） */
+        .element-container:has(#visual-btn-back) + .element-container,
+        .element-container:has(#visual-btn-launch) + .element-container,
+        .element-container:has(#visual-btn-kill) + .element-container,
+        .element-container:has([id*="visual-btn"]) + .element-container,
+        .element-container:has([id*="home-card"]) + .element-container,
+        .back-card-outer + div,
+        .compact-action-outer + div,
+        div:has(> #visual-btn-back) ~ div[data-testid="stButton"],
+        div:has(> #visual-btn-launch) ~ div[data-testid="stButton"],
+        div:has(> #visual-btn-kill) ~ div[data-testid="stButton"],
+        div:has(> #visual-btn-dxm-cpf) ~ div[data-testid="stButton"],
+        div:has(> #visual-btn-dxm-dsers) ~ div[data-testid="stButton"],
+        div:has(> #home-card-cpf) ~ div[data-testid="stButton"],
+        div:has(> #home-card-dsers) ~ div[data-testid="stButton"] {
+            position: fixed !important;
+            top: -9999px !important;
+            left: -9999px !important;
             opacity: 0 !important;
-            height: 0 !important;
-            width: 0 !important;
+            height: 1px !important;
+            width: 1px !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
-            pointer-events: none !important;
+            z-index: -9999 !important;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -823,11 +1589,16 @@ else:
         """, unsafe_allow_html=True)
         if st.button("RELAY_BTN_BACK", key="btn_back_relay"):
             st.session_state.route = None
+            if "route" in st.query_params:
+                del st.query_params["route"]
             st.rerun()
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
     current_excel_path = SCRIPT_TEMPLATE if st.session_state.route == "A" else DSERS_TEMPLATE
+    days = 1
+    hours = 0
+    search_val = ""
 
     with st.container(border=True):
         st.markdown("### 第一步：获取要处理的订单数据")
@@ -867,7 +1638,16 @@ else:
                         current_excel_path = ORDER_TEMPLATE
                     else:
                         current_excel_path = SCRIPT_TEMPLATE
-                    st.success(f"已选定表格（识别类型：{t_type}）")
+                    
+                    c_msg, c_btn = st.columns([8, 2])
+                    with c_msg:
+                        st.success(f"已选定表格（识别类型：{t_type}）")
+                    with c_btn:
+                        if st.button("更改类型"):
+                            st.session_state["handled_file_id"] = None
+                            st.rerun()
+            else:
+                st.session_state["handled_file_id"] = None
         else:
             st.markdown("<br>", unsafe_allow_html=True)
             vault_file_choice = st.selectbox("请选择要继续操作的表格文件", ["dsers模板.xlsx", "import_orders.xlsx", "脚本模板.xlsx", "下单模板.xlsx"])
@@ -894,6 +1674,9 @@ else:
             sw_cpf_rename = st.toggle("自动连接 Telegram 执行 CPF 查询与核对", value=True)
             sw_cpf_merge = st.toggle("将 CPF 查询结果回填至 DSERS 导入表格中", value=False)
             sw_mabang_update = st.toggle("将 CPF 查询核准后的姓名同步更新回马帮 ERP", value=True)
+        
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+        render_dianxiaomi_stock_module(key_prefix="cpf")
     else:
         with st.container(border=True):
             st.markdown("### 第二步：选择要执行的步骤")
@@ -911,6 +1694,10 @@ else:
             sw_dsers_import = st.toggle("一键把整理好的表格上传到 DSERS 后台并批量建单", key="sw_dsers_import_key", on_change=on_dsers_normal_change)
             st.markdown("---")
             sw_dsers_rename = st.toggle("直接打开 DSERS 网页端，针对后台已有订单自动修改买家姓名", key="sw_dsers_rename_key", on_change=on_dsers_rename_change)
+
+        st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
+        render_dianxiaomi_stock_module(key_prefix="dsers")
+
 
     st.markdown("<div style='height: 1rem;'></div>", unsafe_allow_html=True)
 
@@ -1058,9 +1845,6 @@ else:
         let attempts = 0;
         const bindRelays = setInterval(() => {
             attempts++;
-            const backCard = parentDoc.getElementById('visual-btn-back');
-            const launchCard = parentDoc.getElementById('visual-btn-launch');
-            const killCard = parentDoc.getElementById('visual-btn-kill');
             
             // 全匹配隐藏并定位真正承载逻辑的原生 Relay Button
             const findRelayBtn = (textTag) => {
@@ -1079,26 +1863,27 @@ else:
                 return null;
             };
             
-            const btnBack = findRelayBtn('RELAY_BTN_BACK');
-            const btnLaunch = findRelayBtn('RELAY_BTN_LAUNCH');
-            const btnKill = findRelayBtn('RELAY_BTN_KILL');
+            const bindPair = (cardId, textTag) => {
+                const card = parentDoc.getElementById(cardId);
+                if (card) {
+                    card.style.cursor = 'pointer';
+                    card.onclick = (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const liveBtn = findRelayBtn(textTag);
+                        if (liveBtn) {
+                            liveBtn.click();
+                        }
+                    };
+                }
+            };
             
-            if (backCard && btnBack) {
-                backCard.style.cursor = 'pointer';
-                backCard.onclick = (e) => { e.preventDefault(); e.stopPropagation(); btnBack.click(); };
-            }
-            if (launchCard && btnLaunch) {
-                launchCard.style.cursor = 'pointer';
-                launchCard.onclick = (e) => { e.preventDefault(); e.stopPropagation(); btnLaunch.click(); };
-            }
-            if (killCard && btnKill) {
-                killCard.style.cursor = 'pointer';
-                killCard.onclick = (e) => { e.preventDefault(); e.stopPropagation(); btnKill.click(); };
-            }
+            bindPair('visual-btn-back', 'RELAY_BTN_BACK');
+            bindPair('visual-btn-launch', 'RELAY_BTN_LAUNCH');
+            bindPair('visual-btn-kill', 'RELAY_BTN_KILL');
+            bindPair('visual-btn-dxm-cpf', 'RELAY_BTN_DXM_CPF');
+            bindPair('visual-btn-dxm-dsers', 'RELAY_BTN_DXM_DSERS');
             
-            if (backCard && btnBack && launchCard && btnLaunch && killCard && btnKill) {
-                clearInterval(bindRelays);
-            }
             if (attempts > 30) clearInterval(bindRelays);
         }, 100);
     </script>
@@ -1106,13 +1891,15 @@ else:
         
     if btn_kill:
         st.warning("正在停止所有后台程序并清理缓存锁...")
+        for t in global_task_manager.get_active_tasks():
+            global_task_manager.cancel_task(t.task_id)
         os.system("pkill -i -f playwright")
         os.system("pkill -i -f 'remote-debugging-pipe'")
         os.system("pkill -i -f 'user-data-dir.*sessions'")
         for lock_file in glob.glob(os.path.join(SESSIONS_DIR, "*", "Singleton*")):
             try: os.remove(lock_file)
             except: pass
-        st.success("后台程序已被完全停止清理，您可以重新开始执行了。")
+        st.success("后台程序与任务池已被完全停止清理，您可以重新开始执行了。")
         st.stop()
 
     if btn_launch:
@@ -1122,176 +1909,36 @@ else:
             else:
                 st.error("无法开始：请先在第一步中准备好表格数据。")
         else:
-            log_container = st.empty()
-            # --- 启动前自动清洗残余的浏览器单例锁文件，防止 "正在现有的浏览器会话中打开" 报错 ---
-            for lock_file in glob.glob(os.path.join(SESSIONS_DIR, "*", "Singleton*")):
-                try: os.remove(lock_file)
-                except: pass
-            
-            # --- 新增：下单模板的运行前置清洗与映射 ---
-            if st.session_state.get("active_template_type") == "下单模板.xlsx":
-                is_rename_active = (st.session_state.route == "B" and st.session_state.get("sw_dsers_rename_key", False))
-                clean_order_template_to_script(ORDER_TEMPLATE, SCRIPT_TEMPLATE, st.session_state.route, sw_dsers_rename=is_rename_active)
-                current_excel_path = SCRIPT_TEMPLATE
-            
-            # --- 阶段 1 ---
-            if sw_auto_export:
-                log_container.info("[阶段 1] 正在调取马帮 ERP 订单数据...")
-                try:
-                    export_script = "automators/mabang_export_bot.py" if st.session_state.route == "A" else "automators/mabang_dsers_export.py"
-                    flag = "--customer_id" if st.session_state.route == "A" else "--sku"
-                    cmd = ["python3", export_script, "--days", str(days), "--hours", str(hours), flag, search_val]
-                    result = subprocess.run(cmd, capture_output=True, text=True)
-                    if result.returncode == 0:
-                        log_container.success("[阶段 1] 马帮订单数据提取完成。")
-                        current_excel_path = SCRIPT_TEMPLATE
-                    else:
-                        log_container.error(f"马帮接口调用报错:\n[STDOUT]:\n{result.stdout}\n[STDERR]:\n{result.stderr}")
-                        st.stop()
-                except Exception as e:
-                    log_container.error(f"执行异常: {e}")
-                    st.stop()
-                    
-            # --- 阶段 2: 依据管线执行 ---
-            if st.session_state.route == "A":
-                if sw_cpf_rename:
-                    log_container.info("[阶段 2] 正在进行 Telegram CPF 姓名查询...")
-                    def on_progress_cpf(msg):
-                        log_container.info(f"[TG 实时] {msg}")
-                    try:
-                        asyncio.run(run_cpf_query(current_excel_path, TELEGRAM_SESSION_DIR, False, on_progress_cpf))
-                        log_container.success("[阶段 2] Telegram 查名与校验完成。")
-                        
-                        if st.session_state.get("active_template_type") == "下单模板.xlsx":
-                            log_container.info("[同步] 正在同步最新姓名至下单模板 E 列...")
-                            sync_cpf_results_to_order_template(SCRIPT_TEMPLATE, ORDER_TEMPLATE)
-                            log_container.success("[同步] 下单模板 E 列已更新完成。")
-                    except Exception as e:
-                        log_container.error(f"CPF 查询过程异常: {e}")
-                        st.stop()
-                        
-                if sw_cpf_merge:
-                    log_container.info("[阶段 2.5] 独立同步：回填最新姓名至 DSers 导入模板...")
-                    try:
-                        bridge_merge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "merge"], capture_output=True, text=True)
-                        if bridge_merge_res.returncode != 0:
-                            log_container.error(f"姓名同步回填失败:\nSTDOUT:\n{bridge_merge_res.stdout}\nSTDERR:\n{bridge_merge_res.stderr}")
-                            st.stop()
-                        log_container.success("[阶段 2.5] 独立同步完成，DSers 订单姓名已更新。")
-                    except Exception as e:
-                        log_container.error(f"回填执行异常: {e}")
-                        st.stop()
-
-                if sw_mabang_update:
-                    log_container.info("[阶段 3] 正在同步数据至马帮 ERP...")
-                    try:
-                        up_cmd = ["python3", "automators/mabang_update_bot.py"]
-                        up_res = subprocess.run(up_cmd, capture_output=True, text=True)
-                        if up_res.returncode == 0:
-                            log_container.success("[阶段 3] 马帮 ERP 数据同步完成。")
-                        else:
-                            log_container.error(f"马帮同步更新异常:\n{up_res.stderr}")
-                            st.stop()
-                    except Exception as e:
-                        log_container.error(f"回填马帮执行异常: {e}")
-                        st.stop()
-            else:
-                if sw_dsers_clean:
-                    log_container.info("[阶段 2] 正在清理数据字段并映射格式...")
-                    try:
-                        map_cmd = ["python3", "automators/dsers_clean_and_map.py"]
-                        map_res = subprocess.run(map_cmd, capture_output=True, text=True)
-                        if map_res.returncode == 0:
-                            log_container.success("[阶段 2] 数据清理与格式映射完成。")
-                        else:
-                            log_container.error(f"格式映射发生错误:\n{map_res.stderr}")
-                            st.stop()
-                    except Exception as e:
-                        log_container.error(f"模板映射执行异常: {e}")
-                        st.stop()
-                        
-                if sw_dsers_cpf_check:
-                    log_container.info("[阶段 2.4] 姓名核对 1/2: 提取 DSers 订单至 CPF 模板...")
-                    try:
-                        if use_vault and vault_file_choice == "脚本模板.xlsx":
-                            log_container.info("[阶段 2.4] 姓名核对 1/2: (已从脚本模板继续，跳过桥接提取)")
-                        else:
-                            bridge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "export"], capture_output=True, text=True)
-                            if bridge_res.returncode != 0:
-                                log_container.error(f"桥接提取数据失败:\nSTDOUT:\n{bridge_res.stdout}\nSTDERR:\n{bridge_res.stderr}")
-                                st.stop()
-                            
-                        log_container.info("[阶段 2.4] 姓名核对 2/2: 正在通过 Telegram 进行姓名校对...")
-                        def on_progress_cpf(msg):
-                            log_container.info(f"[TG 实时] {msg}")
-                        asyncio.run(run_cpf_query(SCRIPT_TEMPLATE, TELEGRAM_SESSION_DIR, False, on_progress_cpf))
-                        
-                        if st.session_state.get("active_template_type") == "下单模板.xlsx":
-                            log_container.info("[同步] 正在同步最新姓名至下单模板 E 列...")
-                            sync_cpf_results_to_order_template(SCRIPT_TEMPLATE, ORDER_TEMPLATE)
-                            log_container.success("[同步] 下单模板 E 列已更新完成。")
-                    except Exception as e:
-                        log_container.error(f"拦截检查执行异常: {e}")
-                        st.stop()
-                        
-                if sw_dsers_cpf_merge:
-                    log_container.info("[阶段 2.5] 正在同步真实姓名至 DSers 导入模板...")
-                    try:
-                        bridge_merge_res = subprocess.run(["python3", "automators/dsers_cpf_bridge.py", "--mode", "merge"], capture_output=True, text=True)
-                        if bridge_merge_res.returncode != 0:
-                            log_container.error(f"姓名同步回填失败:\nSTDOUT:\n{bridge_merge_res.stdout}\nSTDERR:\n{bridge_merge_res.stderr}")
-                            st.stop()
-                        log_container.success("[阶段 2.5] 姓名同步完成，所有 DSers 订单姓名已更新。")
-                    except Exception as e:
-                        log_container.error(f"回填执行异常: {e}")
-                        st.stop()
-                        
-                if sw_dsers_mabang:
-                    log_container.info("[阶段 2.8] 正在同步真实姓名至马帮 ERP...")
-                    try:
-                        up_cmd = ["python3", "automators/mabang_update_bot.py"]
-                        up_res = subprocess.run(up_cmd, capture_output=True, text=True)
-                        if up_res.returncode == 0:
-                            log_container.success("[阶段 2.8] 马帮 ERP 数据同步完成。")
-                        else:
-                            log_container.error(f"马帮同步异常:\n{up_res.stderr}")
-                            st.stop()
-                    except Exception as e:
-                        log_container.error(f"回填马帮执行异常: {e}")
-                        st.stop()
-                        
-                if sw_dsers_import:
-                    log_container.info("[阶段 3] 正在向 DSers 批量创建与推送订单...")
-                    try:
-                        import_cmd = ["python3", "automators/dsers_import_bot.py", "--csv", DSERS_IMPORT_CSV]
-                        import_res = subprocess.run(import_cmd, capture_output=True, text=True)
-                        if import_res.returncode == 0:
-                            log_container.success("[阶段 3] 批量上传并创建 DSers 订单成功。")
-                        else:
-                            log_container.error(f"上传 DSers 发生错误:\n{import_res.stderr}\n\nStdout:\n{import_res.stdout}")
-                            st.stop()
-                    except Exception as e:
-                        log_container.error(f"DSers 导入执行异常: {e}")
-                        st.stop()
-
-                if sw_dsers_rename:
-                    log_container.info("[阶段 独立] 正在处理 DSers 网页端订单自动改名...")
-                    def on_progress_dsers(msg):
-                        log_container.info(f"[DSers 实时] {msg}")
-                    try:
-                        asyncio.run(run_dsers_rename(current_excel_path, DSERS_SESSION_DIR, False, on_progress_dsers))
-                        log_container.success("[阶段 独立] DSers 订单网页改名处理完成。")
-                    except Exception as e:
-                        log_container.error(f"DSers 网页操作异常: {e}")
-                        st.stop()
-                        
-            # 清理前端 Data Vault 的缓存，强制刷新显示最新数据
-            for key in ['edit_dsers', 'edit_import', 'edit_script', 'edit_order']:
-                if key in st.session_state:
-                    del st.session_state[key]
-                    
-            st.balloons()
-            log_container.success("全流程处理完毕。请刷新当前页面以在上方 Data View 中查看最新生成的数据表。")
+            task_id = f"pipeline_{st.session_state.route.lower()}_{int(time.time())}"
+            pipeline_title = "CPF 订单核对流水线" if st.session_state.route == "A" else "DSERS 批量下单流水线"
+            global_task_manager.submit_task(
+                task_id=task_id,
+                name=pipeline_title,
+                target_fn=execute_pipeline_task,
+                kwargs={
+                    "route": st.session_state.route,
+                    "sw_auto_export": sw_auto_export,
+                    "days": days,
+                    "hours": hours,
+                    "search_val": search_val,
+                    "current_excel_path": current_excel_path,
+                    "active_template_type": st.session_state.get("active_template_type", ""),
+                    "sw_cpf_rename": sw_cpf_rename if st.session_state.route == "A" else False,
+                    "sw_cpf_merge": sw_cpf_merge if st.session_state.route == "A" else False,
+                    "sw_mabang_update": sw_mabang_update if st.session_state.route == "A" else False,
+                    "sw_dsers_clean": sw_dsers_clean if st.session_state.route == "B" else False,
+                    "sw_dsers_cpf_check": sw_dsers_cpf_check if st.session_state.route == "B" else False,
+                    "sw_dsers_cpf_merge": sw_dsers_cpf_merge if st.session_state.route == "B" else False,
+                    "sw_dsers_mabang": sw_dsers_mabang if st.session_state.route == "B" else False,
+                    "sw_dsers_import": sw_dsers_import if st.session_state.route == "B" else False,
+                    "sw_dsers_rename": sw_dsers_rename if st.session_state.route == "B" else False,
+                    "use_vault": use_vault,
+                    "vault_file_choice": vault_file_choice if use_vault else "",
+                },
+                category="流水线"
+            )
+            st.toast(f"{pipeline_title} 已在后台启动！可随时在右上角【任务看板】查看实时耗时与日志。")
+            st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
 
 with st.expander("页面背景光效调节", expanded=False):

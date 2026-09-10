@@ -14,7 +14,6 @@ async def debug():
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",
             headless=True,
             viewport={'width': 1280, 'height': 800}
         )

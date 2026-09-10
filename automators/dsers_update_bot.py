@@ -5,10 +5,12 @@ from playwright.async_api import async_playwright
 
 LOGIN_URL = "https://accounts.dsers.com/accounts/login"
 
-async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool = False, progress_callback=None):
+async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool = False, progress_callback=None, task_info=None):
     import builtins
     def _print(*args, **kwargs):
         builtins.print(*args, **kwargs)
+        if task_info:
+            task_info.check_pause()
         if progress_callback:
             progress_callback(" ".join(str(a) for a in args))
             
@@ -18,9 +20,21 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
     try:
         wb = load_workbook(excel_path, data_only=True)
         ws = wb.active
+        total_count = 0
+        for r in range(2, ws.max_row + 1):
+            if ws.cell(row=r, column=1).value and str(ws.cell(row=r, column=1).value).strip():
+                total_count += 1
+        print(f"[*] 成功载入表格，待处理单号共: {total_count} 条")
+        print(f"[*] 进度提示：现在是 0/{total_count} (共需改名 {total_count} 条)")
     except Exception as e:
         print(f"[!] 无法加载 Excel 文件: {e}")
         return
+
+    for item in ["SingletonLock", "SingletonCookie", "SingletonSocket"]:
+        p_lock = os.path.join(user_data_dir, item)
+        if os.path.exists(p_lock) or os.path.islink(p_lock):
+            try: os.remove(p_lock)
+            except Exception: pass
 
     async with async_playwright() as p:
         print("[*] 启动浏览器...")
@@ -29,14 +43,15 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
         
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",  # 使用本地 Chrome
             headless=headless,    
             viewport={'width': 1280, 'height': 800},
             record_video_dir=video_dir,  # 录制视频
             record_video_size={'width': 1280, 'height': 800}
         )
+        if task_info:
+            task_info.register_context(context)
         
-        page = await context.new_page()
+        page = context.pages[0] if len(context.pages) > 0 else await context.new_page()
         
         # 1. 访问并处理登录
         print(f"[*] 访问 {LOGIN_URL} ...")
@@ -46,14 +61,20 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
         
         # 智能等待：一直检查直到当前页面不再是登录页
         while "login" in page.url.lower():
+            if task_info:
+                await task_info.async_check_pause()
             await asyncio.sleep(1)
             
         print("[*] 检测到已进入 DSers 首页/主控台！")
         print("[*] 为方便您操作（如：按掉广告、确认账号或退出重进等），系统将等待 15 秒...")
         for i in range(15, 0, -1):
+            if task_info:
+                await task_info.async_check_pause()
             if "login" in page.url.lower():
                 print("[*] 检测到您点击了退出，正在等待您登录新账号...")
                 while "login" in page.url.lower():
+                    if task_info:
+                        await task_info.async_check_pause()
                     await asyncio.sleep(1)
                 print("[*] 重新登录成功！等待 5 秒缓冲...")
                 await asyncio.sleep(5)
@@ -63,6 +84,8 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
             await asyncio.sleep(1)
 
         while "login" in page.url.lower():
+            if task_info:
+                await task_info.async_check_pause()
             await asyncio.sleep(1)
 
         print("[*] 准备开始执行自动化操作...")
@@ -89,17 +112,16 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
         except Exception:
             print("[!] 未找到搜索图标。请检查页面是否正确加载至 AliExpress 订单页。")
 
-        print("[*] 准备就绪，开始处理表格数据...")
+        print(f"[*] 准备就绪，开始处理表格数据 (共 {total_count} 条)...")
+        print(f"[*] 进度提示：现在是 0/{total_count} (准备开始改名处理，共需处理 {total_count} 条)")
+        if task_info:
+            task_info.set_progress(0, total_count, prefix="DSers改名", unit="条")
         
         # 3. 循环处理数据
-        total_count = 0
-        for r in range(2, ws.max_row + 1):
-            if ws.cell(row=r, column=1).value and str(ws.cell(row=r, column=1).value).strip():
-                total_count += 1
-
-        processed_count = 0
         row = 2
         while True:
+            if task_info:
+                await task_info.async_check_pause()
             order_id = ws.cell(row=row, column=1).value  # A列：搜索单号
             new_cpf = ws.cell(row=row, column=3).value   # C列：CPF (abnnumber)
             new_name = ws.cell(row=row, column=5).value  # E列：新名字
@@ -108,8 +130,11 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                 print(f"[*] 第 {row} 行遇到空单号，处理结束！")
                 break
                 
+            current_idx = min(total_count, row - 1)
             status_cell = ws.cell(row=row, column=6).value  # F列：状态记录
             if status_cell and str(status_cell).strip() != "":
+                if task_info:
+                    task_info.set_progress(current_idx, total_count, prefix="DSers改名", unit="条")
                 print(f"[*] 第 {row} 行已有处理结果 ({status_cell})，跳过...")
                 row += 1
                 continue
@@ -121,6 +146,9 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                 new_cpf = new_cpf[:-2]
             
             print(f"\n[{row}] 开始处理单号: {order_id} -> 计划修改名字为: '{new_name}', CPF为: '{new_cpf}'")
+            print(f"[*] 进度提示：现在是 {current_idx}/{total_count} (正在处理第 {current_idx}/{total_count} 条: {order_id})")
+            if task_info:
+                task_info.set_progress(current_idx, total_count, prefix="DSers改名", unit="条")
             
             # --- 步骤 3.1: 搜索 ---
             try:
@@ -160,14 +188,20 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                     pass
                 await asyncio.sleep(1.0)
             except Exception as e:
+                if task_info and task_info.is_cancel_requested:
+                    raise RuntimeError("TASK_CANCELLED_BY_USER")
                 print(f"  [!] 搜索操作失败: {e}")
                 ws.cell(row=row, column=6, value="搜索操作失败")
                 wb.save(excel_path)
                 row += 1
                 continue
             
+            if task_info:
+                await task_info.async_check_pause()
+            
             # --- 步骤 3.2: 遍历分类栏寻找订单 ---
             found_category = False
+            not_failed_category = None
             try:
                 more_menu_selectors = [".ant-tabs-nav-more", "[aria-label='more']", "span:has-text('...')"]
                 for more_sel in more_menu_selectors:
@@ -182,19 +216,33 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                 tabs = await page.query_selector_all(tab_selector)
                 
                 for tab in tabs:
+                    if task_info and task_info.is_cancel_requested:
+                        raise RuntimeError("TASK_CANCELLED_BY_USER")
                     if await tab.is_visible():
                         text = await tab.inner_text()
                         if "(1)" in text:
-                            print(f"  -> 找到匹配订单分类: {text.strip()}")
-                            await tab.click()
-                            found_category = True
-                            try:
-                                await page.wait_for_selector("text=Customer Detail", state="visible", timeout=10000)
-                            except Exception:
-                                await asyncio.sleep(1)
+                            if "failed" in text.lower():
+                                print(f"  -> 找到匹配订单分类: {text.strip()}")
+                                await tab.click()
+                                found_category = True
+                                try:
+                                    await page.wait_for_selector("text=Customer Detail", state="visible", timeout=10000)
+                                except Exception:
+                                    await asyncio.sleep(1)
+                            else:
+                                print(f"  -> 订单分类为 {text.strip()} (不在 Failed Orders 中)，跳过无需改名。")
+                                not_failed_category = text.strip()
                             break
             except Exception as e:
+                if task_info and task_info.is_cancel_requested:
+                    raise RuntimeError("TASK_CANCELLED_BY_USER")
                 print(f"  [!] 查找分类标签时出错: {e}")
+
+            if not_failed_category:
+                ws.cell(row=row, column=6, value="跳过(非Failed)")
+                wb.save(excel_path)
+                row += 1
+                continue
 
             if not found_category:
                 print(f"  -> 找不到包含该单号的分类栏。")
@@ -202,6 +250,9 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                 wb.save(excel_path)
                 row += 1
                 continue
+            
+            if task_info:
+                await task_info.async_check_pause()
             
             # --- 步骤 3.3: 展开订单详情 ---
             try:
@@ -366,8 +417,10 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
                     pass
 
             except Exception as e:
-                 print(f"  [!] 修改过程出错: {e}")
-                 ws.cell(row=row, column=6, value="修改出错")
+                if task_info and task_info.is_cancel_requested:
+                    raise RuntimeError("TASK_CANCELLED_BY_USER")
+                print(f"  [!] 修改过程出错: {e}")
+                ws.cell(row=row, column=6, value="修改出错")
                  
             try:
                 wb.save(excel_path)
@@ -379,12 +432,18 @@ async def run_dsers_rename(excel_path: str, user_data_dir: str, headless: bool =
             except Exception:
                 pass
                 
-            processed_count += 1
-            progress_msg = f"[*] 进度提示：现在是 {processed_count}/{total_count} (共需处理 {total_count} 条，当前已处理 {processed_count} 条)"
+            progress_msg = f"[*] 进度提示：现在是 {current_idx}/{total_count} (共需处理 {total_count} 条，当前已处理 {current_idx} 条)"
             print(progress_msg)
+            if task_info:
+                task_info.set_progress(current_idx, total_count, prefix="DSers改名", unit="条")
             row += 1
+            
+            if task_info:
+                await task_info.async_check_pause()
 
         print("[*] 所有任务执行完毕！")
+        if task_info:
+            task_info.set_progress(total_count, total_count, prefix="已完成", unit="条")
         await context.close()
 
 if __name__ == '__main__':

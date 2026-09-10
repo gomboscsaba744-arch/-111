@@ -2,9 +2,11 @@ import asyncio
 import os
 from playwright.async_api import async_playwright
 
-async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = False, progress_callback=None):
+async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = False, progress_callback=None, task_info=None):
     def log(msg):
         print(msg)
+        if task_info:
+            task_info.check_pause()
         if progress_callback:
             progress_callback(msg)
 
@@ -12,15 +14,34 @@ async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = F
         log(f"[!] 找不到 CSV 文件: {csv_path}")
         return
 
+    total_csv_orders = 0
+    try:
+        import pandas as pd
+        df_csv = pd.read_csv(csv_path)
+        total_csv_orders = len(df_csv)
+        log(f"[*] 成功载入导入文件，共 {total_csv_orders} 条订单")
+        log(f"[*] 进度提示：现在是 0/{total_csv_orders} (准备向 DSers 导入 {total_csv_orders} 条订单)")
+        if task_info:
+            task_info.set_progress(0, total_csv_orders, prefix="DSers导入", unit="条")
+    except Exception:
+        pass
+
+    for item in ["SingletonLock", "SingletonCookie", "SingletonSocket"]:
+        p_lock = os.path.join(user_data_dir, item)
+        if os.path.exists(p_lock) or os.path.islink(p_lock):
+            try: os.remove(p_lock)
+            except Exception: pass
+
     log("[*] 启动 DSers 自动导入引擎...")
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",
             headless=headless,
             viewport={'width': 1280, 'height': 800}
         )
-        page = await context.new_page()
+        if task_info:
+            task_info.register_context(context)
+        page = context.pages[0] if len(context.pages) > 0 else await context.new_page()
 
         try:
             # 1. 登录与导航
@@ -39,9 +60,9 @@ async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = F
             log("[*] 检测到已进入 DSers 首页/主控台！")
             log("[*] 为方便您操作（如：按掉广告、确认账号或退出重进等），系统将等待 15 秒...")
             for i in range(15, 0, -1):
-                if "login" in page.url.lower():
+                if "login" in page.url.lower() or "accounts.dsers.com" in page.url.lower():
                     log("[*] 检测到您点击了退出，正在等待您登录新账号...")
-                    while "login" in page.url.lower():
+                    while "login" in page.url.lower() or "accounts.dsers.com" in page.url.lower():
                         await asyncio.sleep(1)
                     log("[*] 重新登录成功！等待 5 秒缓冲...")
                     await asyncio.sleep(5)
@@ -50,21 +71,26 @@ async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = F
                     log(f"[*] 距离自动开始还剩 {i} 秒 (如需退出切换账号请立刻点击)...")
                 await asyncio.sleep(1)
 
-            while "login" in page.url.lower():
+            log("[*] 正在确认是否已成功进入主控台...")
+            wait_dashboard = 0
+            while "application" not in page.url.lower() and wait_dashboard < 60:
+                if wait_dashboard % 5 == 0:
+                    log(f"[*] 等待进入主控台 ({wait_dashboard}s/60s)...")
                 await asyncio.sleep(1)
+                wait_dashboard += 1
 
             log("[*] 准备开始执行自动化导入...")
 
             # 2. 点击左侧 CSV Upload
             log("[*] 正在点击【CSV Upload】...")
             try:
-                # DSers左侧菜单可能嵌套，使用精确匹配文本
-                await page.get_by_text("CSV Upload", exact=True).locator("visible=true").first.click(timeout=8000, force=True)
+                # DSers左侧菜单可能嵌套，使用包含匹配文本
+                await page.get_by_text("CSV Upload", exact=False).locator("visible=true").first.click(timeout=8000, force=True)
             except Exception:
                 await page.evaluate("""() => {
-                    let els = Array.from(document.querySelectorAll('a, li, span, div')).filter(e => e.innerText && e.innerText.trim() === 'CSV Upload' && e.offsetHeight > 0);
-                    // 找出没有子元素也叫 CSV Upload 的最内层元素
-                    let target = els.find(e => !Array.from(e.children).some(c => c.innerText && c.innerText.trim() === 'CSV Upload')) || els[0];
+                    let els = Array.from(document.querySelectorAll('a, li, span, div')).filter(e => e.innerText && e.innerText.includes('CSV Upload') && e.offsetHeight > 0);
+                    // 找出没有子元素也包含 CSV Upload 的最内层元素
+                    let target = els.find(e => !Array.from(e.children).some(c => c.innerText && c.innerText.includes('CSV Upload'))) || els[0];
                     if (target) target.click();
                 }""")
             await asyncio.sleep(4)
@@ -151,6 +177,10 @@ async def run_dsers_import(csv_path: str, user_data_dir: str, headless: bool = F
             
             log("[*] 提交指令已发送，等待页面响应...")
             await asyncio.sleep(3)
+            if total_csv_orders > 0:
+                log(f"[*] 进度提示：现在是 {total_csv_orders}/{total_csv_orders} (已成功导入 {total_csv_orders} 条订单)")
+                if task_info:
+                    task_info.set_progress(total_csv_orders, total_csv_orders, prefix="已完成", unit="条")
             log("✅ DSers 订单批量导入指令已执行完毕！")
             log("[*] 浏览器将保持开启 15 秒钟供您检查导入结果，随后将自动安全关闭...")
             await asyncio.sleep(15)

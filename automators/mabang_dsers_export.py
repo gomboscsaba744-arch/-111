@@ -10,9 +10,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from automators.excel_utils import save_df_to_excel
 from config import DSERS_TEMPLATE
 
-async def run_mabang_export(user_data_dir: str, days: int = 1, hours: int = 0, sku_val: str = 'code', headless: bool = False, progress_callback=None):
+async def run_mabang_export(user_data_dir: str, days: int = 1, hours: int = 0, sku_val: str = 'code', headless: bool = False, progress_callback=None, task_info=None):
     def log(msg):
         print(msg)
+        if task_info:
+            task_info.check_pause()
         if progress_callback:
             progress_callback(msg)
 
@@ -23,55 +25,62 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, hours: int = 0, s
     mb_user = str(config['mabang']['username'])
     mb_pwd = str(config['mabang']['password'])
 
+    for item in ["SingletonLock", "SingletonCookie", "SingletonSocket"]:
+        p_lock = os.path.join(user_data_dir, item)
+        if os.path.exists(p_lock) or os.path.islink(p_lock):
+            try: os.remove(p_lock)
+            except Exception: pass
+
     log("[*] 启动浏览器...")
     async with async_playwright() as p:
         context = await p.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",
             headless=headless,
             viewport={'width': 1280, 'height': 800},
             accept_downloads=True
         )
-        page = await context.new_page()
+        if task_info:
+            task_info.register_context(context)
+        page = context.pages[0] if len(context.pages) > 0 else await context.new_page()
         
         try:
             # === 第一步：从首页进入并处理自动登录 ===
-            log("[*] 正在打开马帮首页...")
+            log("[*] [步骤 1/5] 正在打开马帮并处理登录...")
             await page.goto("https://901067.private.mabangerp.com/index.htm", wait_until='domcontentloaded', timeout=60000)
             
             # 判断是否需要登录
             await asyncio.sleep(2)
             if await page.locator('#login-but').is_visible():
-                log("[*] 检测到未登录状态，开始自动登录...")
+                log("[*] [步骤 1/5] 检测到未登录状态，开始自动登录...")
                 await page.locator('input[name="username"]').first.fill(mb_user)
                 await page.locator('input[name="password"]').first.fill(mb_pwd)
                 await page.locator('#login-but').click()
-                log("[*] 登录已提交，等待页面加载...")
+                log("[*] [步骤 1/5] 登录已提交，等待页面加载...")
                 await page.wait_for_load_state('domcontentloaded')
                 await asyncio.sleep(3)
             
             # === 第二步：处理首页的“店铺授权提醒”弹窗 ===
-            log("[*] 等待并检查是否有授权提醒弹窗...")
+            log("[*] [步骤 2/5] 等待并检查是否有授权提醒弹窗...")
             try:
                 await page.wait_for_selector('text="店铺授权提醒"', timeout=5000)
-                log("[*] 发现授权提醒弹窗，正在关闭...")
+                log("[*] [步骤 2/5] 发现授权提醒弹窗，正在关闭...")
                 checkbox = page.locator('text="7天内不再重复提醒"')
                 if await checkbox.count() > 0:
                     await checkbox.click()
                 await page.locator('.layui-layer-btn0, a:has-text("确认")').first.click()
-                log("[*] 已点击确认关闭弹窗。")
+                log("[*] [步骤 2/5] 已点击确认关闭弹窗。")
                 await asyncio.sleep(2)
             except Exception:
-                log("[*] 没有发现弹窗，继续操作。")
+                log("[*] [步骤 2/5] 没有发现弹窗，继续操作。")
             
             # === 第三步：导航到订单列表 ===
-            log("[*] 导航至【订单列表】...")
+            log("[*] [步骤 3/5] 正在导航至【订单列表】...")
             await page.goto("https://901067.private.mabangerp.com/index.php?mod=order.list&Order_orderStatus=2", wait_until='domcontentloaded')
             await page.wait_for_selector('span.text.mr5.ml5:has-text("批处理功能")', timeout=30000)
             await asyncio.sleep(3)
             
             # === 第四步：高级搜索 ===
-            log("[*] 打开高级搜索面板...")
+            log("[*] [步骤 4/5] 正在打开高级搜索并配置筛选...")
             try:
                 await page.locator('text="高级搜索"').last.click(timeout=5000)
             except Exception:
@@ -416,6 +425,7 @@ async def run_mabang_export(user_data_dir: str, days: int = 1, hours: int = 0, s
                 output_excel = DSERS_TEMPLATE
                 try:
                     save_df_to_excel(final_df, output_excel)
+                    log(f"[*] 进度提示：已成功生成 DSers 格式最终模板，共 {len(final_df)} 条订单数据")
                     log(f"[*] 成功生成 DSers 格式最终模板: {output_excel}")
                 except Exception as e:
                     log(f"[!] 无法保存表格 (可能表格正被 Excel 占用打开): {e}")

@@ -12,3 +12,8 @@ dsers:
 
 telegram:
   url: "https://web.telegram.org/k/"
+
+dianxiaomi:
+  url: "https://www.dianxiaomi.com/web/smt/smtProductList/online"
+  username: "396107072"
+  password: "Yy19841027"
